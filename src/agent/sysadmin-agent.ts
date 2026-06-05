@@ -10,12 +10,13 @@ export interface RunAgentInput {
   storage: Storage;
   initialPrompt?: string;
   sessionID?: string;
-  abortSignal?: AbortSignal;
+  abortController?: AbortController;
 }
 
 export async function runSysAdminAgent(input: RunAgentInput): Promise<string> {
   const sessionID = input.sessionID ?? createSession(input.storage, "sysadmin", input.config.model, input.config.provider);
   const promptText = input.initialPrompt || "Hello! I'm your SysAdmin assistant. How can I help you today?";
+  const controller = input.abortController ?? new AbortController();
 
   input.bus.emit("session", { sessionID, type: "created", agent: "sysadmin" });
 
@@ -26,7 +27,7 @@ export async function runSysAdminAgent(input: RunAgentInput): Promise<string> {
     sessionID,
     initialPrompt: promptText,
     agent: "sysadmin",
-    abortSignal: input.abortSignal,
+    abortController: controller,
   });
 
   return sessionID;

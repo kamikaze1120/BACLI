@@ -10,12 +10,13 @@ export interface RunAgentInput {
   storage: Storage;
   initialPrompt?: string;
   sessionID?: string;
-  abortSignal?: AbortSignal;
+  abortController?: AbortController;
 }
 
 export async function runBAAgent(input: RunAgentInput): Promise<string> {
   const sessionID = input.sessionID ?? createSession(input.storage, "ba", input.config.model, input.config.provider);
   const promptText = input.initialPrompt || "Hello! I'm your BA assistant. How can I help you today?";
+  const controller = input.abortController ?? new AbortController();
 
   input.bus.emit("session", { sessionID, type: "created", agent: "ba" });
 
@@ -26,7 +27,7 @@ export async function runBAAgent(input: RunAgentInput): Promise<string> {
     sessionID,
     initialPrompt: promptText,
     agent: "ba",
-    abortSignal: input.abortSignal,
+    abortController: controller,
   });
 
   return sessionID;
