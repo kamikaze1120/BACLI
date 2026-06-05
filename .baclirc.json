@@ -1,0 +1,49 @@
+{
+  "$schema": "https://bacli.dev/config.json",
+  "model": "deepseek-v4-flash",
+  "provider": "deepseek",
+  "baseUrl": "https://api.deepseek.com",
+  "apiKey": "${DEEPSEEK_API_KEY}",
+  "smallModel": "deepseek-v4-flash",
+  "shell": "powershell",
+  "logLevel": "INFO",
+  "compaction": {
+    "auto": true,
+    "tailTurns": 15
+  },
+  "agent": {
+    "ba": {
+      "description": "Business Analyst agent for document generation, analysis, and requirements",
+      "permission": {
+        "edit": "allow",
+        "bash": "ask",
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "webfetch": "allow",
+        "websearch": "allow",
+        "question": "allow"
+      }
+    },
+    "sysadmin": {
+      "description": "System Administrator agent for infrastructure, scripts, and configs",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "webfetch": "allow",
+        "websearch": "allow",
+        "ssh": "ask",
+        "question": "deny"
+      }
+    }
+  },
+  "permission": {
+    "read": {
+      "*.env": "ask",
+      "*.env.*": "ask"
+    }
+  }
+}

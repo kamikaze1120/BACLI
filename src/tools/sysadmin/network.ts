@@ -1,0 +1,159 @@
+import { z } from "zod";
+import { execSync } from "child_process";
+import type { ToolDef, ToolContext, ExecuteResult } from "../tool.js";
+
+const Parameters = z.object({
+  operation: z.enum(["ping", "traceroute", "dns-lookup", "port-check", "config"]).describe("Network operation to perform"),
+  target: z.string().describe("Target hostname or IP address"),
+  port: z.number().optional().describe("Port number (for port-check)"),
+  configSnippet: z.string().optional().describe("Network configuration to generate (for config operation)"),
+});
+
+const networkTool: ToolDef<z.infer<typeof Parameters>> = {
+  id: "network",
+  description: "Network diagnostics and configuration generation. Supports ping, traceroute, DNS lookup, port checking, and config generation.",
+  parameters: Parameters,
+
+  async execute(args, ctx: ToolContext): Promise<ExecuteResult> {
+    switch (args.operation) {
+      case "ping":
+        return runPing(args.target);
+      case "traceroute":
+        return runTraceroute(args.target);
+      case "dns-lookup":
+        return runDNSLookup(args.target);
+      case "port-check":
+        return runPortCheck(args.target, args.port ?? 80);
+      case "config":
+        return generateConfig(args.target, args.configSnippet || "");
+      default:
+        return { title: "Unknown operation", output: `Unknown operation: ${args.operation}` };
+    }
+  },
+};
+
+async function runPing(target: string): Promise<ExecuteResult> {
+  const isWin = process.platform === "win32";
+  const cmd = isWin ? `ping -n 4 ${target}` : `ping -c 4 ${target}`;
+
+  try {
+    const output = execSync(cmd, { timeout: 30000, encoding: "utf-8", windowsHide: true });
+    return {
+      title: `Ping results for ${target}`,
+      output: output,
+      metadata: { target, operation: "ping" },
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { title: "Ping failed", output: `Ping to ${target} failed: ${msg}` };
+  }
+}
+
+async function runTraceroute(target: string): Promise<ExecuteResult> {
+  const isWin = process.platform === "win32";
+  const cmd = isWin ? `tracert ${target}` : `traceroute ${target}`;
+
+  try {
+    const output = execSync(cmd, { timeout: 60000, encoding: "utf-8", windowsHide: true });
+    return {
+      title: `Traceroute to ${target}`,
+      output: output,
+      metadata: { target, operation: "traceroute" },
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { title: "Traceroute failed", output: `Traceroute to ${target} failed: ${msg}` };
+  }
+}
+
+async function runDNSLookup(target: string): Promise<ExecuteResult> {
+  const isWin = process.platform === "win32";
+  const cmd = isWin ? `nslookup ${target}` : `nslookup ${target} 2>&1 || dig ${target} +short`;
+
+  try {
+    const output = execSync(cmd, { timeout: 15000, encoding: "utf-8", windowsHide: true });
+    return {
+      title: `DNS lookup for ${target}`,
+      output: output,
+      metadata: { target, operation: "dns-lookup" },
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { title: "DNS lookup failed", output: `DNS lookup for ${target} failed: ${msg}` };
+  }
+}
+
+async function runPortCheck(target: string, port: number): Promise<ExecuteResult> {
+  try {
+    // Try a TCP connection to check if port is open
+    const { Socket } = await import("net");
+    return new Promise((resolve) => {
+      const socket = new Socket();
+      socket.setTimeout(5000);
+
+      socket.on("connect", () => {
+        socket.destroy();
+        resolve({
+          title: `Port ${port} on ${target}`,
+          output: `Port ${port} on ${target} is OPEN`,
+          metadata: { target, port, status: "open" },
+        });
+      });
+
+      socket.on("timeout", () => {
+        socket.destroy();
+        resolve({
+          title: `Port ${port} on ${target}`,
+          output: `Port ${port} on ${target} is FILTERED or TIMEOUT (no response in 5s)`,
+          metadata: { target, port, status: "filtered" },
+        });
+      });
+
+      socket.on("error", (err: NodeJS.ErrnoException) => {
+        socket.destroy();
+        const status = err.code === "ECONNREFUSED" ? "closed" : "error";
+        resolve({
+          title: `Port ${port} on ${target}`,
+          output: `Port ${port} on ${target} is ${status.toUpperCase()}${err.code !== "ECONNREFUSED" ? ` (${err.message})` : ""}`,
+          metadata: { target, port, status },
+        });
+      });
+
+      socket.connect(port, target);
+    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { title: "Port check failed", output: `Port check failed: ${msg}` };
+  }
+}
+
+async function generateConfig(target: string, configSnippet: string): Promise<ExecuteResult> {
+  const config = `# Network Configuration for ${target}
+# Generated by bacli SysAdmin Agent
+
+${configSnippet || `# Network interface configuration
+# Add your network configuration here
+
+# Firewall rules
+# - ${target}: allow incoming connections on ports 80, 443
+# - ${target}: allow SSH on port 22
+
+# DNS
+# - Primary DNS: 8.8.8.8
+# - Secondary DNS: 8.8.4.4
+
+# Monitoring
+# - Enable ICMP monitoring
+# - Configure SNMP community strings
+# - Set up log aggregation`}
+
+`;
+
+  return {
+    title: `Network configuration for ${target}`,
+    output: config,
+    metadata: { target, operation: "config" },
+  };
+}
+
+export default networkTool;

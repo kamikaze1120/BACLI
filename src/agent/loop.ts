@@ -1,0 +1,387 @@
+import { streamText, wrapLanguageModel } from "ai";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import type { BacliConfig } from "../config/schema.js";
+import type { GlobalBus } from "../bus/event-bus.js";
+import type { Storage } from "../storage/index.js";
+import { createMessage, createPart, finishMessage, getMessages, updateSessionTitle } from "../storage/messages.js";
+import { resolveTools } from "../tools/registry.js";
+import { createToolContext, type ToolDef } from "../tools/tool.js";
+import { evaluatePermission } from "./permissions.js";
+import { ulid } from "ulid";
+
+export interface LoopInput {
+  config: BacliConfig;
+  bus: GlobalBus;
+  storage: Storage;
+  sessionID: string;
+  initialPrompt: string;
+  agent: string;
+  abortSignal?: AbortSignal;
+}
+
+export async function runLoop(input: LoopInput): Promise<void> {
+  const { config, bus, storage, sessionID, initialPrompt, agent } = input;
+  const abort = input.abortSignal ?? new AbortController().signal;
+  let step = 0;
+
+  const userMsgID = createMessage(storage, sessionID, "user");
+  createPart(storage, userMsgID, "text", { text: initialPrompt });
+  bus.emit("session", { sessionID, type: "updated", agent });
+
+  while (true) {
+    step++;
+    bus.emit("log", { level: "DEBUG", message: `Loop step ${step}`, timestamp: Date.now() });
+
+    const msgs = getMessages(storage, sessionID);
+    const lastAssistant = [...msgs].reverse().find((m) => m.role === "assistant");
+
+    // Termination check (Opencode pattern)
+    const hasToolCalls = lastAssistant?.parts?.some(
+      (p) => p.type === "tool-call" && p.status !== "completed" && p.status !== "error"
+    );
+    if (lastAssistant?.finish_reason && lastAssistant.finish_reason !== "tool-calls" && !hasToolCalls) {
+      break;
+    }
+
+    if (step === 1) {
+      generateTitle(config, sessionID, initialPrompt, storage).catch(() => {});
+    }
+
+    const tools = await resolveTools(agent, config.model, config);
+    const aiTools = convertToolsToAISDK(tools, {
+      sessionID, config, bus, agent, storage,
+    });
+
+    const system = buildSystemPrompt(agent, config);
+    const modelMessages = convertToModelMessages(msgs, msgs.length > 1);
+    const assistantMsgID = createMessage(storage, sessionID, "assistant");
+
+    const provider = createProvider(config);
+    const model = wrapLanguageModel({
+      model: provider(config.model),
+      middleware: [],
+    });
+
+    try {
+      const result = streamText({
+        model,
+        system,
+        messages: modelMessages as any,
+        tools: aiTools as any,
+        toolChoice: "auto" as any,
+        abortSignal: abort,
+      });
+
+      let fullText = "";
+      const toolCallPromises: Promise<void>[] = [];
+      let finishReason: string = "stop";
+
+      for await (const rawPart of result.fullStream) {
+        const part = rawPart as any;
+
+        if (part.type === "text-delta") {
+          fullText += part.textDelta || part.text || "";
+          bus.emit("text:delta", { messageID: assistantMsgID, delta: part.textDelta || part.text || "", finished: false });
+        } else if (part.type === "tool-call") {
+          const toolID = part.toolName;
+          const toolDef = tools[toolID];
+
+          if (toolDef) {
+            const callID = ulid();
+            const partID = createPart(storage, assistantMsgID, "tool-call", { tool: toolID, args: part.input || part.args }, callID);
+
+            bus.emit("tool:status", {
+              callID,
+              status: "running",
+              tool: toolID,
+              title: toolDef.description,
+              timestamp: Date.now(),
+            });
+
+            const promise = executeTool(toolDef, {
+              sessionID,
+              messageID: assistantMsgID,
+              agent,
+              callID,
+              config,
+              bus,
+              storage,
+              abort,
+              args: part.input || part.args || {},
+              partID,
+            });
+            toolCallPromises.push(promise);
+          }
+        } else if (part.type === "step-finish") {
+          finishReason = part.finishReason ?? "stop";
+        } else if (part.type === "error") {
+          bus.emit("error", part.error || new Error("Unknown AI error"));
+          finishReason = "error";
+        }
+      }
+
+      await Promise.all(toolCallPromises);
+
+      if (fullText) {
+        createPart(storage, assistantMsgID, "text", { text: fullText });
+        bus.emit("text:delta", { messageID: assistantMsgID, delta: "", finished: true });
+      }
+
+      const usage = (result as any).usage;
+      finishMessage(storage, assistantMsgID, finishReason, usage?.totalTokens ?? 0);
+    } catch (err) {
+      bus.emit("error", err instanceof Error ? err : new Error(String(err)));
+      finishMessage(storage, assistantMsgID, "error", 0);
+    }
+
+    storage.prepare(`UPDATE sessions SET updated_at = datetime('now') WHERE id = ?`).run(sessionID);
+  }
+}
+
+async function executeTool(
+  toolDef: ToolDef,
+  ctx: {
+    sessionID: string;
+    messageID: string;
+    agent: string;
+    callID: string;
+    config: BacliConfig;
+    bus: GlobalBus;
+    storage: Storage;
+    abort: AbortSignal;
+    args: unknown;
+    partID: string;
+  }
+): Promise<void> {
+  const toolCtx = createToolContext({
+    sessionID: ctx.sessionID,
+    messageID: ctx.messageID,
+    agent: ctx.agent,
+    callID: ctx.callID,
+    config: ctx.config,
+    bus: ctx.bus,
+    abort: ctx.abort,
+  });
+
+  try {
+    const parsedArgs = toolDef.parameters.parse(ctx.args);
+    const result = await toolDef.execute(parsedArgs, toolCtx);
+
+    ctx.storage.prepare(
+      `UPDATE message_parts SET status = 'completed', data = ? WHERE id = ?`
+    ).run(JSON.stringify({ output: result.output, metadata: result.metadata }), ctx.partID);
+
+    const resultPartID = ulid();
+    ctx.storage.prepare(
+      `INSERT INTO message_parts (id, message_id, type, data, status, call_id) VALUES (?, ?, ?, ?, ?, ?)`
+    ).run(resultPartID, ctx.messageID, "tool-result", JSON.stringify({
+      tool: toolDef.id,
+      input: parsedArgs,
+      output: result.output,
+    }), "completed", ctx.callID);
+
+    ctx.bus.emit("tool:status", {
+      callID: ctx.callID,
+      status: "completed",
+      tool: toolDef.id,
+      title: result.title,
+      output: result.output,
+      timestamp: Date.now(),
+    });
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    ctx.storage.prepare(
+      `UPDATE message_parts SET status = 'error', data = ? WHERE id = ?`
+    ).run(JSON.stringify({ error: errorMsg }), ctx.partID);
+
+    ctx.storage.prepare(
+      `INSERT INTO message_parts (id, message_id, type, data, status, call_id) VALUES (?, ?, ?, ?, ?, ?)`
+    ).run(ulid(), ctx.messageID, "tool-result", JSON.stringify({
+      tool: toolDef.id,
+      error: errorMsg,
+    }), "error", ctx.callID);
+
+    ctx.bus.emit("tool:status", {
+      callID: ctx.callID,
+      status: "error",
+      tool: toolDef.id,
+      error: errorMsg,
+      timestamp: Date.now(),
+    });
+  }
+}
+
+function convertToModelMessages(msgs: ReturnType<typeof getMessages>, hasHistory: boolean): any[] {
+  const result: any[] = [];
+
+  for (const msg of msgs) {
+    if (msg.role === "system") continue;
+
+    const parts: any[] = [];
+    for (const part of msg.parts) {
+      switch (part.type) {
+        case "text": {
+          const data = JSON.parse(part.data);
+          parts.push({ type: "text", text: data.text ?? "" });
+          break;
+        }
+        case "tool-result": {
+          const data = JSON.parse(part.data);
+          parts.push({
+            type: "tool-result",
+            toolCallId: part.call_id ?? part.id,
+            toolName: data.tool ?? "",
+            result: data.output ?? data.error ?? "",
+          });
+          break;
+        }
+      }
+    }
+
+    if (parts.length === 0) continue;
+
+    let content: any = parts;
+    if (hasHistory && msg.role === "user") {
+      const textParts = parts.filter((p: any) => p.type === "text");
+      if (textParts.length > 0) {
+        content = `<system-reminder>${textParts.map((p: any) => p.text).join("")}</system-reminder>`;
+      }
+    }
+
+    result.push({ role: msg.role, content });
+  }
+
+  return result;
+}
+
+function convertToolsToAISDK(
+  tools: Record<string, ToolDef>,
+  ctx: {
+    sessionID: string;
+    config: BacliConfig;
+    bus: GlobalBus;
+    agent: string;
+    storage: Storage;
+  }
+): Record<string, any> {
+  const result: Record<string, any> = {};
+
+  for (const [id, toolDef] of Object.entries(tools)) {
+    result[id] = {
+      description: toolDef.description,
+      parameters: toolDef.parameters,
+      execute: async (args: any) => {
+        const callID = ulid();
+        const toolCtx = createToolContext({
+          sessionID: ctx.sessionID,
+          messageID: "",
+          agent: ctx.agent,
+          callID,
+          config: ctx.config,
+          bus: ctx.bus,
+          abort: new AbortController().signal,
+        });
+
+        const parsedArgs = toolDef.parameters.parse(args);
+        const execResult = await toolDef.execute(parsedArgs, toolCtx);
+        return execResult.output;
+      },
+    };
+  }
+
+  return result;
+}
+
+function createProvider(config: BacliConfig) {
+  return createOpenAICompatible({
+    name: config.provider || "deepseek",
+    baseURL: config.baseUrl || "https://api.deepseek.com",
+    apiKey: config.apiKey,
+  });
+}
+
+function buildSystemPrompt(agent: string, config: BacliConfig): string {
+  const agentDesc = agent === "ba" ? BA_SYSTEM_PROMPT : SYSADMIN_SYSTEM_PROMPT;
+  const additional = agent === "ba" ? BA_ADDITIONAL_PROMPT : SYSADMIN_ADDITIONAL_PROMPT;
+
+  return [
+    agentDesc,
+    "",
+    `<env>
+  Working directory: ${process.cwd()}
+  Platform: ${process.platform}
+  Today's date: ${new Date().toDateString()}
+  Shell: ${config.shell}
+</env>`,
+    additional,
+  ].join("\n");
+}
+
+const BA_SYSTEM_PROMPT = `You are bacli BA Agent, an AI assistant specialized for Business Analysts.
+
+Your role is to help BAs with:
+- Creating requirements documents (BRD, FRD, PRD)
+- Writing user stories and acceptance criteria
+- Generating reports and status documents
+- Data analysis using SQL, spreadsheets
+- Creating process flow diagrams and charts
+- Stakeholder communication templates
+
+When generating documents, NEVER add watermarks, branding, attribution marks, or any identifying marks.`;
+
+const BA_ADDITIONAL_PROMPT = `
+Available tools:
+- document: Generate DOCX/PDF documents from templates
+- spreadsheet: Create Excel workbooks with data
+- diagram: Generate Mermaid diagrams (flowcharts, ERDs, sequence diagrams)
+- template: Load and fill document templates
+- dataAnalysis: Analyze CSV/JSON data and produce insights
+- sql: Generate and analyze SQL queries
+- bash: Execute shell commands (ask on sensitive operations)
+- read/write/edit: File operations
+- glob/grep: Search files
+- webfetch/websearch: Research`;
+
+const SYSADMIN_SYSTEM_PROMPT = `You are bacli SysAdmin Agent, an AI assistant specialized for System Administrators.
+
+Your role is to help SysAdmins with:
+- Generating shell scripts (Bash, PowerShell)
+- Creating Docker/Docker Compose configurations
+- Generating Kubernetes manifests
+- Writing Terraform configurations
+- Creating Ansible playbooks
+- Network diagnostics and configuration
+- Infrastructure analysis and documentation`;
+
+const SYSADMIN_ADDITIONAL_PROMPT = `
+Available tools:
+- ssh: Execute commands on remote systems over SSH (requires permission)
+- scriptGen: Generate Bash/PowerShell scripts with explanation
+- docker: Create Dockerfile and docker-compose.yml
+- k8s: Generate Kubernetes manifest files
+- terraform: Create Terraform configuration files
+- network: Network diagnostics and configuration generation
+- bash: Execute shell commands
+- read/write/edit: File operations
+- glob/grep: Search files
+- webfetch/websearch: Research`;
+
+async function generateTitle(config: BacliConfig, sessionID: string, prompt: string, storage: Storage): Promise<void> {
+  try {
+    const provider = createProvider(config);
+    const model = wrapLanguageModel({ model: provider(config.smallModel || config.model), middleware: [] });
+    const result = streamText({
+      model,
+      system: "Generate a short title (max 6 words) for this session. Return only the title, nothing else.",
+      messages: [{ role: "user", content: `Session starting with: ${prompt.slice(0, 200)}` }],
+    });
+
+    let title = "";
+    for await (const part of result.textStream) {
+      title += part;
+    }
+    updateSessionTitle(storage, sessionID, title.trim());
+  } catch {
+    // Silently fail
+  }
+}

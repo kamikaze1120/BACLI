@@ -1,0 +1,58 @@
+{
+  "name": "@bacli/cli",
+  "version": "0.1.0",
+  "description": "CLI agent for Business Analysts and System Administrators",
+  "type": "module",
+  "bin": {
+    "bacli": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "install.sh",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build",
+    "binary": "pkg . --output dist/bacli"
+  },
+  "dependencies": {
+    "@ai-sdk/openai-compatible": "^2.0.0",
+    "@ai-sdk/openai": "^3.0.0",
+    "ai": "^6.0.0",
+    "better-sqlite3": "^11.7.0",
+    "chalk": "^5.4.0",
+    "commander": "^15.0.0",
+    "cosmiconfig": "^9.0.0",
+    "diff": "^7.0.0",
+    "docx": "^9.0.0",
+    "exceljs": "^4.4.0",
+    "glob": "^11.0.0",
+    "handlebars": "^4.7.0",
+    "ink": "^5.1.0",
+    "ink-text-input": "^6.0.0",
+    "mermaid": "^11.4.0",
+    "pdf-lib": "^1.17.0",
+    "react": "^18.3.0",
+    "ssh2": "^1.16.0",
+    "typescript": "^5.7.0",
+    "ulid": "^2.3.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/diff": "^6.0.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.3.0",
+    "@types/ssh2": "^1.15.0",
+    "tsx": "^4.19.0",
+    "vitest": "^3.0.0"
+  },
+  "publishConfig": {
+    "access": "restricted"
+  }
+}
