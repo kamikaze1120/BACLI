@@ -66,6 +66,10 @@ function extractTodos(text: string): TodoItem[] {
   return items;
 }
 
+function truncate(s: string, n: number): string {
+  return s.length > n ? s.slice(0, n) + "..." : s;
+}
+
 function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" | "sysadmin"; initialPrompt?: string }) {
   const { exit } = useApp();
   const [agent, setAgent] = useState<"ba" | "sysadmin">(initialAgent);
@@ -85,6 +89,7 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
   const storageRef = useRef<Storage | null>(null);
   const theme = defaultTheme;
   const sessionIdRef = useRef("");
+
 
   const updateStats = useCallback((sid: string) => {
     if (!storageRef.current || !sid) return;
@@ -170,7 +175,6 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
 
       updateStats(sessionID);
 
-      // Launch persistent loop in background (no await)
       runPersistentLoop({
         config,
         bus,
@@ -180,9 +184,7 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
         initialPrompt: initialPrompt || undefined,
         mode,
         abortController: new AbortController(),
-      }).catch((err) => {
-        setAgentStatus("error");
-      });
+      }).catch(() => {});
 
       submitRef.current = (prompt: string) => {
         bus.emit("user:input", { prompt, sessionID });
@@ -203,7 +205,7 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
   }, []);
 
   const handleSubmit = useCallback((prompt: string) => {
-    if (!prompt.trim()) return;
+    if (!prompt.trim() || agentStatus !== "awaiting-input") return;
 
     const cmd = prompt.trim().toLowerCase();
     if (cmd === "/plan") { setMode("plan"); return; }
@@ -214,7 +216,7 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
     setMessages((prev) => [...prev, { role: "user", text: prompt }]);
     setMessages((prev) => [...prev, { role: "assistant", text: "" }]);
     submitRef.current(prompt);
-  }, []);
+  }, [agentStatus]);
 
   useInput((inputKey, key) => {
     if (key.ctrl && inputKey === "c") {
@@ -237,34 +239,34 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
   const price = getPricePerM(configRef.current?.model || "");
   const estCost = ((tokenStats.total / 1000000) * (price.input + price.output) / 2).toFixed(4);
   const isBusy = agentStatus === "busy" || agentStatus === "starting";
-  const statusLabel = agentStatus === "starting" ? "starting" : agentStatus === "busy" ? "running" : "idle";
+  const statusDot = isBusy ? "●" : "○";
+  const statusColor = isBusy ? "yellow" : theme.textMuted;
 
   return (
     <Box flexDirection="column" height="100%">
       {/* Header */}
-      <Box borderStyle="single" borderColor={theme.primary} paddingX={1}>
+      <Box borderStyle="single" borderColor={theme.border} paddingX={1}>
         <Text bold color={theme.accent}> bacli </Text>
-        <Text color={theme.secondary}>●</Text>
-        <Text color={agent === "ba" ? "green" : theme.textMuted}> BA </Text>
+        <Text color={statusColor}>{statusDot}</Text>
+        <Text color={agent === "ba" ? theme.primary : theme.textMuted}> BA </Text>
         <Text color={theme.textMuted}>|</Text>
-        <Text color={agent === "sysadmin" ? "green" : theme.textMuted}> SysAdmin </Text>
-        <Text color={theme.textMuted}> | </Text>
-        <Text bold color={mode === "build" ? "green" : "yellow"}>{mode.toUpperCase()}</Text>
+        <Text color={agent === "sysadmin" ? theme.primary : theme.textMuted}> SysAdmin </Text>
+        <Text color={theme.textMuted}> / </Text>
+        <Text bold color={mode === "build" ? theme.primary : theme.warning}>{mode.toUpperCase()}</Text>
         <Box flexGrow={1} />
         <Text color={theme.textMuted}>{configRef.current?.model || "no-model"}</Text>
-        <Box width={1} />
-        <Text color={theme.muted}>● {statusLabel}</Text>
       </Box>
 
-      {/* Main content */}
+      {/* Main */}
       <Box flexGrow={1} flexDirection="row">
         {/* Session sidebar */}
         {showSessions && (
           <Box width={24} borderStyle="single" borderColor={theme.border} flexDirection="column" paddingX={1}>
-            <Text bold color={theme.secondary}>Sessions</Text>
+            <Text bold color={theme.accent}>Sessions</Text>
             <Box flexGrow={1} flexDirection="column">
+              {sessions.length === 0 && <Text color={theme.textMuted}>no sessions</Text>}
               {sessions.map((s) => (
-                <Text key={s.id} color={s.id === currentSessionID ? "green" : theme.textMuted} wrap="truncate">
+                <Text key={s.id} color={s.id === currentSessionID ? theme.primary : theme.textMuted} wrap="truncate-end">
                   {s.id === currentSessionID ? ">" : " "} {s.title || s.id.slice(0, 12)}
                 </Text>
               ))}
@@ -274,14 +276,15 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
 
         {/* Chat panel */}
         <Box flexGrow={1} flexDirection="column">
+          {/* Messages */}
           <Box flexGrow={1} flexDirection="column" paddingX={1}>
             {messages.map((msg, i) => (
               <Box key={i} flexDirection="column" marginY={0}>
-                <Text color={msg.role === "user" ? theme.accent : theme.text} bold={msg.role === "user"}>
-                  {msg.role === "user" ? "You: " : "BA: "}
+                <Text color={msg.role === "user" ? theme.accent : theme.textMuted}>
+                  {msg.role === "user" ? "You" : "BA"}
                 </Text>
-                {msg.text === "[Error]" ? (
-                  <Text color="red">{msg.text}</Text>
+                {msg.text.startsWith("[Error]") ? (
+                  <Text color={theme.error}>{msg.text}</Text>
                 ) : (
                   <Text color={theme.text}>{msg.text || (msg.role === "assistant" ? "..." : "")}</Text>
                 )}
@@ -292,26 +295,25 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
                 <Text color={theme.secondary}>  ● {tc.tool}: {tc.title}</Text>
               </Box>
             ))}
+            {messages.length === 0 && agentStatus === "awaiting-input" && (
+              <Box flexGrow={1} alignItems="center" justifyContent="center" flexDirection="column">
+                <Text color={theme.textMuted}>Ask your {agent === "ba" ? "BA" : "SysAdmin"} agent anything</Text>
+              </Box>
+            )}
           </Box>
 
-          {/* Input area */}
+          {/* Input */}
           <Box borderStyle="single" borderColor={theme.border} paddingX={1} flexDirection="row">
             <Box width={2}>
-              <Text color={mode === "build" ? "green" : "yellow"} bold>{mode === "build" ? ">" : "?"} </Text>
+              <Text color={isBusy ? theme.warning : theme.primary} bold>{mode === "build" ? ">" : "?"} </Text>
             </Box>
             <Box flexGrow={1}>
-              {isBusy ? (
-                <Text color={theme.muted}>⏳ Working...</Text>
-              ) : agentStatus === "awaiting-input" ? (
-                <TextInput
-                  value={input}
-                  onChange={setInput}
-                  onSubmit={handleSubmit as any}
-                  placeholder={`Ask your ${agent === "ba" ? "BA" : "SysAdmin"} agent...`}
-                />
-              ) : (
-                <Text color={theme.muted}>⏳ Starting agent...</Text>
-              )}
+              <TextInput
+                value={input}
+                onChange={setInput}
+                onSubmit={handleSubmit as any}
+                placeholder={isBusy ? "Waiting for agent..." : "Type your message..."}
+              />
             </Box>
           </Box>
         </Box>
@@ -319,14 +321,14 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
         {/* Info panel */}
         {showInfo && (
           <Box width={30} borderStyle="single" borderColor={theme.border} flexDirection="column" paddingX={1}>
-            <Text bold color={theme.secondary}>Context</Text>
+            <Text bold color={theme.accent}>Context</Text>
             <Box marginY={0}>
               <Text color={theme.textMuted}>Tokens: </Text>
               <Text color={theme.text}>{tokenStats.total.toLocaleString()} / {(tokenStats.limit / 1000).toFixed(0)}K</Text>
             </Box>
             <Box marginY={0}>
               <Text color={theme.textMuted}>Used: </Text>
-              <Text color={pct === "100.0" ? "red" : theme.text}>{pct}%</Text>
+              <Text color={pct === "100.0" ? theme.error : theme.text}>{pct}%</Text>
             </Box>
             <Box marginY={0}>
               <Text color={theme.textMuted}>Messages: </Text>
@@ -343,13 +345,14 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
 
             {todoItems.length > 0 && (
               <>
-                <Text bold color={theme.secondary}>Tasks</Text>
+                <Text bold color={theme.accent}>Tasks</Text>
                 <Box flexDirection="column">
                   {todoItems.slice(0, 10).map((item, i) => (
                     <Box key={i} flexDirection="row">
-                      <Text color={item.done ? "green" : theme.warning}>
-                        {item.done ? "✓" : "○"} {item.text.length > 22 ? item.text.slice(0, 22) + "..." : item.text}
+                      <Text color={item.done ? theme.success : theme.warning}>
+                        {item.done ? "✓" : "○"}
                       </Text>
+                      <Text color={theme.text}>{truncate(item.text, 22)}</Text>
                     </Box>
                   ))}
                   {todoItems.length > 10 && (
@@ -364,11 +367,13 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
 
       {/* Status bar */}
       <Box borderStyle="single" borderColor={theme.border} paddingX={1}>
-        <Text color={theme.muted}>
-          [Tab: Agent] [/plan /build] [Ctrl+P: Sessions] [Ctrl+I: Info] [Ctrl+C: Stop]
+        <Text color={theme.textMuted}>
+          [Tab: Agent] [/plan /build]
         </Text>
         <Box flexGrow={1} />
         <Text color={theme.textMuted}>session: {currentSessionID.slice(0, 8)}</Text>
+        <Box width={1} />
+        <Text color={statusColor}>· {agentStatus}</Text>
       </Box>
     </Box>
   );
