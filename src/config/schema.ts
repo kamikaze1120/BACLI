@@ -25,6 +25,8 @@ export const BacliConfigSchema = z.object({
   baseUrl: z.string().default("https://api.deepseek.com"),
   apiKey: z.string().default(""),
   smallModel: z.string().default("deepseek-v4-flash"),
+  openrouterModel: z.string().default("deepseek/deepseek-v4-flash:free"),
+  openrouterBaseUrl: z.string().default("https://openrouter.ai/api/v1"),
   shell: z.string().default("powershell"),
   logLevel: z.enum(["DEBUG", "INFO", "WARN", "ERROR"] as const).default("INFO"),
   username: z.string().default("user"),

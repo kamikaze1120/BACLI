@@ -42,10 +42,22 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
   const storageRef = useRef<Storage | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
+  const [needsSetup, setNeedsSetup] = useState(false);
+
   useEffect(() => {
     (async () => {
       const config = await loadConfig();
       configRef.current = config;
+
+      if (!config.apiKey) {
+        setNeedsSetup(true);
+        setMessages([{
+          role: "assistant",
+          text: "👋 Welcome to bacli!\n\nI need an API key to work. Run this in your terminal:\n\n  \x1b[36mbacli setup\x1b[0m\n\nOr set the environment variable:\n\n  \x1b[36mset OPENROUTER_API_KEY=sk-or-...\x1b[0m  (Windows)\n  \x1b[36mexport OPENROUTER_API_KEY=sk-or-...\x1b[0m  (Mac/Linux)\n\nGet a free key at: \x1b[34mhttps://openrouter.ai/keys\x1b[0m\n\nOnce configured, just type your first prompt below!"
+        }]);
+        return;
+      }
+
       const storage = initStorage(config);
       storageRef.current = storage;
 
@@ -102,7 +114,7 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
   }, []);
 
   const handleSubmit = useCallback(async (prompt: string) => {
-    if (!prompt.trim() || busy || !storageRef.current || !configRef.current) return;
+    if (!prompt.trim() || busy || !storageRef.current || !configRef.current || needsSetup) return;
 
     setInput("");
     setBusy(true);

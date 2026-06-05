@@ -6,6 +6,8 @@ export const defaultConfig: BacliConfig = {
   baseUrl: "https://api.deepseek.com",
   apiKey: "",
   smallModel: "deepseek-v4-flash",
+  openrouterModel: "deepseek/deepseek-v4-flash:free",
+  openrouterBaseUrl: "https://openrouter.ai/api/v1",
   shell: process.platform === "win32" ? "powershell" : "bash",
   logLevel: "INFO",
   username: "user",

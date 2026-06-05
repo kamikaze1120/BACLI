@@ -106,6 +106,15 @@ describe("Config Schema Validation", () => {
     expect(result.success).toBe(true);
   });
 
+  it("has openrouter defaults", () => {
+    const result = BacliConfigSchema.safeParse({});
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.openrouterModel).toBe("deepseek/deepseek-v4-flash:free");
+      expect(result.data.openrouterBaseUrl).toBe("https://openrouter.ai/api/v1");
+    }
+  });
+
   it("handles nested agent permissions with glob patterns", () => {
     const config = {
       agent: {

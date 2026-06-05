@@ -293,6 +293,14 @@ function convertToolsToAISDK(
 }
 
 function createProvider(config: BacliConfig) {
+  // If no API key, try OpenRouter free tier
+  if (!config.apiKey) {
+    return createOpenAICompatible({
+      name: "openrouter",
+      baseURL: "https://openrouter.ai/api/v1",
+      apiKey: "",
+    });
+  }
   return createOpenAICompatible({
     name: config.provider || "deepseek",
     baseURL: config.baseUrl || "https://api.deepseek.com",

@@ -1,167 +1,184 @@
 # bacli
 
-**CLI agent for Business Analysts and System Administrators**
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](package.json)
+[![TypeScript](https://img.shields.io/badge/types-TypeScript-blue)](tsconfig.json)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
+[![Maintained](https://img.shields.io/badge/maintained-yes-green)](#)
 
-bacli is an AI-powered terminal agent that helps Business Analysts generate documents, analyze data, and design diagrams, while giving System Administrators the power to orchestrate infrastructure, write scripts, and manage deployments — all from the command line.
-
-Built on top of the Vercel AI SDK with a full Ink + React terminal UI, bacli supports multiple AI providers (DeepSeek, OpenRouter, OpenAI-compatible), persistent SQLite session storage, and a flexible permission system.
-
----
-
-## Features
-
-- **Two agent modes** — BA agent for requirements, docs, data analysis; SysAdmin agent for scripts, Docker, K8s, Terraform
-- **Full TUI** — Split-pane terminal UI with streaming text, tool status, session switching, and keyboard navigation
-- **Document generation** — Create DOCX, PDF, and Markdown documents with zero watermarks or branding
-- **Diagrams** — Generate Mermaid flowcharts, ERDs, sequence diagrams, and more
-- **Spreadsheets** — Create Excel workbooks from data
-- **Templates** — Built-in BRD, FRD, and User Story templates via Handlebars
-- **Data analysis** — Analyze CSV and JSON data in-place
-- **SQL tools** — Query analysis, optimization suggestions, and dialect-specific guidance
-- **Script generation** — Generate Bash, PowerShell, Python, and Batch scripts
-- **Infrastructure as Code** — Docker Compose, Kubernetes manifests, Terraform configurations
-- **Session persistence** — All conversations saved to SQLite, forkable and searchable
-- **Context compaction** — Automatic pruning of old tool results to stay within context windows
-- **Permission system** — Fine-grained allow/ask/deny rules per tool and agent with glob patterns
-- **Multi-provider** — DeepSeek (default), OpenRouter, or any OpenAI-compatible endpoint
-- **Memory system** — Persistent memory file for cross-session context retention
-- **HTTP server mode** — SSE-based server for remote agent access
-
----
-
-## Architecture
+> **CLI agent for Business Analysts & System Administrators** — documents, diagrams, infrastructure, scripts — all from your terminal.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                      bacli CLI                              │
-│  ┌──────────┐  ┌──────────┐  ┌────────────┐  ┌──────────┐  │
-│  │ TUI      │  │ HTTP     │  │ CLI        │  │ Config   │  │
-│  │ (Ink)    │  │ Server   │  │ (Commander)│  │ (Zod)    │  │
-│  └────┬─────┘  └────┬─────┘  └─────┬──────┘  └────┬─────┘  │
-│       └──────────────┴──────────────┴──────────────┘        │
-│                              │                               │
-│  ┌──────────────────────────┴──────────────────────────┐    │
-│  │               Agent Loop                             │    │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────────────┐  │    │
-│  │  │ Provider │  │ Tools    │  │ Permission       │  │    │
-│  │  │ (AI SDK) │  │ (20+)    │  │ System           │  │    │
-│  │  └──────────┘  └──────────┘  └──────────────────┘  │    │
-│  └─────────────────────────────────────────────────────┘    │
-│                              │                               │
-│  ┌──────────────────────────┴──────────────────────────┐    │
-│  │               Storage (SQLite)                       │    │
-│  │  sessions │ messages │ message_parts │ compaction   │    │
-│  └─────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────┘
+  ╔══════════════════════════════════════════════════════════╗
+  ║                                                          ║
+  ║   ██████   █████  ██████  ██      ██                     ║
+  ║  ██       ██   ██ ██   ██ ██      ██                     ║
+  ║  ██       ███████ ██████  ██      ██                     ║
+  ║  ██       ██   ██ ██   ██ ██      ██                     ║
+  ║   ██████  ██   ██ ██████  ███████ ███████                ║
+  ║                                                          ║
+  ║  ┌──────────────────────────────────────────────────┐    ║
+  ║  │  BA Agent    │  SysAdmin Agent   │  HTTP Server  │    ║
+  ║  │  Documents   │  Docker/K8s       │  SSE Streaming│    ║
+  ║  │  Diagrams    │  Terraform        │  Session API  │    ║
+  ║  │  Data Analysis│ Scripts (any lang)│  Fork/Resume │    ║
+  ║  └──────────────────────────────────────────────────┘    ║
+  ║                                                          ║
+  ║  ★ No watermarks ★ No telemetry ★ Open source (MIT) ★   ║
+  ║                                                          ║
+  ╚══════════════════════════════════════════════════════════╝
 ```
 
-### Key components
+---
 
-| Component | File | Description |
-|-----------|------|-------------|
-| CLI entry | `src/index.ts` | Commander CLI with subcommands |
-| Agent loop | `src/agent/loop.ts` | Core loop: LLM → tools → result → repeat |
-| Config | `src/config/schema.ts` | Zod v4 schema, cosmiconfig loader |
-| Permissions | `src/agent/permissions.ts` | Allow/ask/deny with glob pattern matching |
-| Tools | `src/tools/` | 20+ tool implementations in 3 categories |
-| TUI | `src/cli/tui/App.tsx` | Ink + React split-pane terminal UI |
-| Storage | `src/storage/` | SQLite CRUD for sessions and messages |
-| Event bus | `src/bus/event-bus.ts` | Typed global event emitter |
-| Compaction | `src/agent/compaction.ts` | Token-based context pruning |
+## ✨ What's this?
+
+**bacli** is an AI agent that lives in your terminal. Tell it what you need and it gets to work — generating polished business documents, crunching CSV data, spinning up Docker Compose files, analyzing SQL queries, or writing Terraform configs.
+
+Two agents, one tool:
+
+| 🎯 **BA Agent** | ⚡ **SysAdmin Agent** |
+|---|---|
+| BRDs, FRDs, User Stories | Docker Compose, Dockerfiles |
+| Mermaid diagrams (flowcharts, ERDs, sequences) | Kubernetes manifests |
+| DOCX, PDF, Markdown docs | Terraform (AWS, GCP, Azure) |
+| Excel spreadsheets | Bash, PowerShell, Python, Batch scripts |
+| CSV/JSON data analysis | SSH remote execution |
+| SQL query analysis & optimization | Network diagnostics & configs |
+| Handlebars templates | Infrastructure blueprints |
+
+No watermarks. No branding. Just clean, professional output.
 
 ---
 
-## Prerequisites
-
-- **Node.js 20+** (LTS recommended)
-- An API key for your AI provider:
-  - [DeepSeek](https://platform.deepseek.com/api_keys) (default)
-  - [OpenRouter](https://openrouter.ai/keys) (free tier available)
-
----
-
-## Installation
-
-### Quick install (recommended)
+## 🚀 Quick start
 
 ```bash
+# One-liner install
 curl -fsSL https://raw.githubusercontent.com/kamikaze1120/BACLI/main/install.sh | bash
+
+# Start the agent
+bacli
 ```
 
-This tries `npm install -g @bacli/cli` first, then falls back to downloading a binary.
-
-### npm global install
+That's it. First launch walks you through getting a free API key (no credit card needed). Then you're off.
 
 ```bash
-# From the repo directory
-npm install -g .
-
-# Or if published to a private npm registry
-npm install -g @bacli/cli
+# Or jump straight in with a prompt
+bacli "Create a BRD for a customer portal with stakeholder analysis"
+bacli sysadmin "Set up Docker Compose for a Node.js + PostgreSQL app"
 ```
 
-### From source
+### Other install options
 
 ```bash
+# From source
 git clone https://github.com/kamikaze1120/BACLI.git
 cd BACLI
 npm install
 npm run build
 npm link
-```
 
-### Binary (via pkg)
-
-```bash
-npm run binary
-./dist/bacli.exe  # Windows
-```
-
-### Verify installation
-
-```bash
-bacli --help
+# npm global
+npm install -g @bacli/cli
 ```
 
 ---
 
-## Configuration
+## 🎮 TUI in action
 
-bacli looks for configuration in this order (later overrides earlier):
-
-1. **Global config** — `~/.config/bacli/config.json`
-2. **Project config** — `.baclirc.json` in current directory
-3. **Environment variables** — `BACLI_API_KEY`, `BACLI_MODEL`, `BACLI_PROVIDER`, `BACLI_BASE_URL`
-
-### Quick start
-
-```bash
-# Set your API key
-export DEEPSEEK_API_KEY="sk-your-key-here"
-
-# Start the BA agent
-bacli "Create a BRD for a customer portal"
+```
+┌─────────────────────────────────────────────────────────────┐
+│  bacli — BA Agent                                           │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  > Create a BRD for an inventory management system          │
+│                                                             │
+│  ┌─ Generating document ──────────────────────────┐         │
+│  │  ✓ Creating Business Requirements Document      │         │
+│  │  ✓ Adding stakeholders section                  │         │
+│  │  ✓ Generating functional requirements           │         │
+│  │  ✓ Saving to output/brd-inventory.docx           │         │
+│  └─────────────────────────────────────────────────┘         │
+│                                                             │
+│  Here's your BRD! It covers:                                │
+│  • Executive summary                                        │
+│  • Stakeholder analysis (6 identified)                      │
+│  • 15 functional requirements across 4 modules              │
+│  • Timeline and milestones                                  │
+│                                                             │
+│  >                                                        │
+├─────────────────────────────────────────────────────────────┤
+│  [BA] [SysAdmin]  Ctrl+P sessions  Ctrl+C cancel           │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Create project config
+### Keyboard shortcuts
+
+| Key | What it does |
+|---|---|
+| `Tab` | Switch between BA and SysAdmin agents |
+| `Ctrl+P` | Browse and switch sessions |
+| `Ctrl+C` | Stop current generation |
+| `Ctrl+C` `Ctrl+C` | Exit bacli |
+| `Esc` | Close session picker |
+
+---
+
+## 🔧 Getting an API key (free)
+
+bacli uses AI models to do its thing. You need an API key from a supported provider. Here are **free options**:
+
+### Option A: OpenRouter (recommended — free credits)
+
+[OpenRouter](https://openrouter.ai/) gives you free credits on signup, no credit card needed.
 
 ```bash
+export OPENROUTER_API_KEY="sk-or-..."
+# Or start bacli — it'll prompt you on first run
+```
+
+### Option B: DeepSeek
+
+```bash
+export DEEPSEEK_API_KEY="sk-..."
+```
+
+### Option C: Bring your own
+
+Any OpenAI-compatible endpoint works:
+
+```bash
+export BACLI_API_KEY="..."
+export BACLI_PROVIDER="custom"
+export BACLI_BASE_URL="https://api.myprovider.com/v1"
+```
+
+On first run, `bacli setup` walks you through the whole thing interactively.
+
+---
+
+## ⚙️ Configuration
+
+Configuration is loaded in this order (later wins):
+
+1. **Global**: `~/.config/bacli/config.json`
+2. **Project**: `.baclirc.json`
+3. **Env vars**: `BACLI_API_KEY`, `BACLI_MODEL`, `BACLI_PROVIDER`, `BACLI_BASE_URL`
+4. **CLI flags**: `--model`, `--provider`
+
+### Quick config
+
+```bash
+# Create project config
 bacli init
+
+# View/set values
+bacli config get model
+bacli config set model deepseek-v4-flash
 ```
 
-This creates `.baclirc.json`:
-
-```json
-{
-  "$schema": "https://bacli.dev/config.json",
-  "model": "deepseek-v4-flash",
-  "provider": "deepseek",
-  "apiKey": "${DEEPSEEK_API_KEY}",
-  "baseUrl": "https://api.deepseek.com"
-}
-```
-
-### Full configuration options
+### Full example
 
 ```json
 {
@@ -173,48 +190,17 @@ This creates `.baclirc.json`:
   "smallModel": "deepseek-v4-flash",
   "shell": "powershell",
   "logLevel": "INFO",
-  "username": "user",
-
   "agent": {
     "ba": {
-      "description": "Business Analyst agent",
-      "prompt": "Custom system prompt additions for BA",
-      "model": "deepseek-v4-flash",
-      "temperature": 0.7,
-      "steps": 25,
-      "permission": {
-        "edit": "allow",
-        "bash": "ask",
-        "read": "allow",
-        "glob": "allow",
-        "grep": "allow",
-        "webfetch": "allow",
-        "websearch": "allow"
-      }
+      "permission": { "edit": "allow", "bash": "ask", "read": "allow" }
     },
     "sysadmin": {
-      "description": "System Administrator agent",
-      "permission": {
-        "edit": "allow",
-        "bash": "allow",
-        "read": "allow",
-        "ssh": "ask"
-      }
+      "permission": { "edit": "allow", "bash": "allow", "ssh": "ask" }
     }
   },
-
   "permission": {
-    "read": {
-      "*.env": "ask",
-      "*.env.*": "ask"
-    }
+    "read": { "*.env": "ask", "*.env.*": "ask" }
   },
-
-  "toolOutput": {
-    "maxLines": 200,
-    "maxBytes": 8192
-  },
-
   "compaction": {
     "auto": true,
     "tailTurns": 15
@@ -222,102 +208,28 @@ This creates `.baclirc.json`:
 }
 ```
 
-### AI providers
-
-You can use any OpenAI-compatible provider by changing `provider` and `baseUrl`:
-
-```bash
-# OpenRouter (free tier)
-export BACLI_PROVIDER=openrouter
-export BACLI_BASE_URL=https://openrouter.ai/api/v1
-export BACLI_API_KEY="sk-or-..."
-
-# Local LLM (Ollama, LM Studio, etc.)
-export BACLI_PROVIDER=local
-export BACLI_BASE_URL=http://localhost:11434/v1
-export BACLI_API_KEY="dummy"
-```
-
 ---
 
-## Usage
+## 🧠 Memory system
 
-### Starting the agent
+bacli remembers what you tell it — across sessions.
 
-```powershell
-# Start BA agent (default)
-bacli
+- **Project memory**: `.bacli/memory.md`
+- **Global memory**: `~/.config/bacli/memory.md`
 
-# Start BA agent with an initial prompt
-bacli "Create a BRD for an inventory management system"
-
-# Start SysAdmin agent
-bacli sysadmin
-
-# Start SysAdmin agent with a prompt
-bacli sysadmin "Create a Docker Compose for a Node.js + PostgreSQL app"
-
-# Specify model/provider
-bacli --model deepseek-v4-flash --provider deepseek
-bacli sysadmin --model mistralai/mistral-7b-instruct:free
-```
-
-### TUI keyboard shortcuts
-
-| Key | Action |
-|-----|--------|
-| `Tab` | Switch between BA and SysAdmin agents |
-| `Ctrl+P` | Open session list (pick to switch) |
-| `Ctrl+C` | Cancel current generation |
-| `Ctrl+C` (twice) | Exit bacli |
-| `Esc` | Close session picker |
-
-### Writing prompts
-
-You can type naturally. The agent understands your tools and uses them autonomously:
-
-**BA prompts:**
-- "Create a BRD for a customer onboarding portal with stakeholder analysis"
-- "Analyze this CSV and give me insights: data.csv"
-- "Generate a sequence diagram for the login flow"
-- "Create an Excel sheet with monthly sales data"
-- "Write a SQL query to find top 10 customers by revenue"
-
-**SysAdmin prompts:**
-- "Create a Docker Compose for a MERN stack app"
-- "Generate Kubernetes deployment + service for nginx"
-- "Write a Bash backup script for PostgreSQL"
-- "Create Terraform to deploy an EC2 instance"
-- "SSH into the server and check disk usage"
-
-### Managing sessions
-
-- Sessions are automatically saved to SQLite (`~/.config/bacli/sessions.db`)
-- Use `Ctrl+P` in the TUI to view and switch between sessions
-- Sessions can be forked (continued from any point)
-- Titles are auto-generated from the first prompt
-
-### Memory system
-
-bacli maintains a persistent memory file that the agent reads and writes across sessions. This allows it to remember user preferences, project context, and important facts.
-
-**Memory file locations:**
-- **Global**: `~/.config/bacli/memory.md`
-- **Project**: `.bacli/memory.md` (overrides global)
-
-The agent automatically consults memory at the start of each session and can update it during a conversation. You can also edit the file manually:
+The agent reads these on launch and writes to them throughout the conversation. You can edit them manually too:
 
 ```bash
-# View current memory
+# See what it remembers
 cat ~/.config/bacli/memory.md
 
-# Edit memory
-nano ~/.config/bacli/memory.md
+# Add something it should definitely know
+echo "- Prefer Markdown over DOCX for drafts" >> .bacli/memory.md
 ```
 
 ---
 
-## Commands
+## 📋 All commands
 
 ```
 Usage: bacli [options] [prompt]
@@ -325,211 +237,220 @@ Usage: bacli [options] [prompt]
 CLI agent for Business Analysts and System Administrators
 
 Arguments:
-  prompt                   Initial prompt for the BA agent
+  prompt                 Initial prompt for the BA agent
 
 Options:
-  -V, --version            Output the version number
-  -m, --model <model>      Model ID to use
-  -p, --provider <provider> Provider name
-  -h, --help               Display help
+  -V, --version          Output version number
+  -m, --model <model>    Model ID to use
+  -p, --provider <prov>  Provider name
+  -h, --help             Display help
 
 Commands:
-  sysadmin [prompt]        Start System Administrator agent
-  init                     Create .baclirc.json in current directory
-  config <action> <key>    Get or set config values
-  serve [options]          Start HTTP server with SSE
-  help [command]           Display help for command
+  sysadmin [prompt]      Start SysAdmin agent
+  init                   Create .baclirc.json
+  config <get|set> <key> [value]   Manage config
+  serve [options]        Start HTTP + SSE server
+  setup                  Interactive first-run wizard
 ```
 
 ---
 
-## Tool reference
+## 🛠️ Tool reference
 
 ### Built-in tools (both agents)
 
-| Tool | Description |
-|------|-------------|
-| `bash` | Execute shell commands (respects permission rules) |
-| `read` | Read files with optional offset/limit |
-| `write` | Write content to files |
-| `edit` | Edit files using 9 matching strategies (exact, trimmed, block-anchor, regex, patterns) |
+| Tool | What it does |
+|---|---|
+| `bash` | Run shell commands (respects permissions) |
+| `read` | Read files (offset/limit support) |
+| `write` | Write files |
+| `edit` | Edit files — 9 matching strategies |
 | `glob` | Find files by glob pattern |
 | `grep` | Search file contents by regex |
-| `webfetch` | Fetch and convert web content to markdown |
-| `websearch` | Search the web for information |
+| `webfetch` | Fetch URLs and convert to markdown |
+| `websearch` | Search the web |
 
 ### BA tools
 
-| Tool | Description |
-|------|-------------|
-| `document` | Generate DOCX, PDF, or Markdown documents (no watermarks) |
-| `spreadsheet` | Create Excel workbooks with data and formatting |
-| `diagram` | Generate Mermaid diagrams (flowchart, ERD, sequence, class, Gantt) |
-| `template` | Load and fill document templates (BRD, FRD, User Story) |
-| `dataAnalysis` | Analyze CSV/JSON data with statistical summaries |
-| `sql` | Analyze SQL query structure and get optimization suggestions |
+| Tool | What it does |
+|---|---|
+| `document` | Generate DOCX, PDF, Markdown — **zero watermarks** |
+| `spreadsheet` | Create Excel workbooks with data |
+| `diagram` | Mermaid diagrams (flowchart, ERD, sequence, class, Gantt) |
+| `template` | Fill Handlebars templates (BRD, FRD, User Story) |
+| `dataAnalysis` | Analyze CSV/JSON data with stats |
+| `sql` | Analyze SQL queries, get optimization tips |
 
 ### SysAdmin tools
 
-| Tool | Description |
-|------|-------------|
-| `ssh` | Execute commands on remote systems over SSH |
-| `scriptGen` | Generate Bash/PowerShell/Python/Batch scripts |
-| `docker` | Create Dockerfiles and Docker Compose configurations |
-| `k8s` | Generate Kubernetes manifests (Deployment, Service, ConfigMap, etc.) |
-| `terraform` | Create Terraform configurations |
-| `network` | Network diagnostics and configuration generation |
+| Tool | What it does |
+|---|---|
+| `ssh` | Remote command execution over SSH |
+| `scriptGen` | Generate Bash, PowerShell, Python, Batch |
+| `docker` | Dockerfile + Docker Compose |
+| `k8s` | Kubernetes manifests (Deployment, Service, ConfigMap, etc.) |
+| `terraform` | Terraform configs for any provider |
+| `network` | Network diagnostics and config generation |
 
 ---
 
-## Permission system
+## 🔒 Permission system
 
-bacli uses a flexible permission system modeled after Opencode. Each tool can be configured with one of three actions:
+Three levels per tool:
 
-| Action | Behavior |
-|--------|----------|
-| `allow` | Tool runs automatically without prompting |
-| `ask` | User is asked for confirmation before each execution |
-| `deny` | Tool is blocked and returns an error |
+| Rule | What happens |
+|---|---|
+| `allow` | Runs automatically |
+| `ask` | Prompts you before each run |
+| `deny` | Blocked with an error |
 
-### How rules are evaluated
-
-1. Global permissions are checked first (from `config.permission`)
-2. Agent-specific permissions override global (from `config.agent.<name>.permission`)
-3. Permission rules use glob patterns: `{ "*.env": "deny" }`
-
-### Permission examples
+Rules use glob patterns and per-agent overrides:
 
 ```json
 {
   "permission": {
     "read": { "*.env": "ask", "*.key": "deny" },
-    "bash": "ask",
-    "edit": "allow"
+    "bash": "ask"
   },
   "agent": {
-    "ba": {
-      "permission": {
-        "bash": "ask",
-        "ssh": "deny"
-      }
-    },
-    "sysadmin": {
-      "permission": {
-        "bash": "allow",
-        "ssh": "ask"
-      }
-    }
+    "ba": { "permission": { "bash": "ask" } },
+    "sysadmin": { "permission": { "bash": "allow", "ssh": "ask" } }
   }
 }
 ```
 
 ---
 
-## Development
+## 🏗️ Architecture
 
-### Setup
+```
+┌───────────────────────────────────────────────────────┐
+│                       bacli CLI                        │
+│  ┌──────────┐  ┌──────────┐  ┌─────────┐  ┌───────┐  │
+│  │ TUI      │  │ HTTP     │  │ CLI     │  │ Config│  │
+│  │ (Ink+React)│  │ Server  │  │(Commander)│  │(Zod)  │  │
+│  └────┬─────┘  └────┬─────┘  └────┬────┘  └───┬───┘  │
+│       └──────────────┴──────────────┴────────────┘     │
+│                          │                              │
+│  ┌──────────────────────┴────────────────────────┐     │
+│  │               Agent Loop                       │     │
+│  │  ┌──────────┐  ┌──────────┐  ┌────────────┐  │     │
+│  │  │ Provider │  │ Tools    │  │ Permission │  │     │
+│  │  │ (AI SDK) │  │ (20+)    │  │ System     │  │     │
+│  │  └──────────┘  └──────────┘  └────────────┘  │     │
+│  └───────────────────────────────────────────────┘     │
+│                          │                              │
+│  ┌──────────────────────┴────────────────────────┐     │
+│  │            Storage (SQLite)                     │     │
+│  │  sessions │ messages │ parts │ compaction     │     │
+│  └───────────────────────────────────────────────┘     │
+└───────────────────────────────────────────────────────┘
+```
+
+### Stack
+
+| Layer | Technology |
+|---|---|
+| Runtime | Node.js 20+, TypeScript 5.x |
+| AI SDK | Vercel AI SDK v6 |
+| TUI | Ink + React 18 |
+| Validation | Zod v4 |
+| Storage | SQLite (better-sqlite3) |
+| Config | cosmiconfig |
+| Documents | docx, pdf-lib (MIT) — **no watermarks** |
+| Diagrams | Mermaid |
+| Spreadsheets | ExcelJS |
+
+---
+
+## 🧪 Development
 
 ```bash
 git clone https://github.com/kamikaze1120/BACLI.git
 cd BACLI
 npm install
 npm run build
-npm link
+npm link     # makes `bacli` available globally
 ```
 
-### Commands
+### Scripts
 
-| Command | Description |
-|---------|-------------|
-| `npm run build` | Compile TypeScript to `dist/` |
+| Command | What it does |
+|---|---|
+| `npm run build` | Compile TypeScript → `dist/` |
 | `npm start` | Run compiled version |
-| `npm run dev` | Run with `tsx` (no compile step) |
-| `npm test` | Run all tests (vitest) |
-| `npm run test:watch` | Run tests in watch mode |
-| `npm run binary` | Create standalone binary with pkg |
+| `npm run dev` | Run with tsx (hot reload) |
+| `npm test` | 64+ tests across 5 suites |
+| `npm run test:watch` | Tests in watch mode |
+| `npm run binary` | Package as standalone binary (pkg) |
 
 ### Project structure
 
 ```
 bacli/
 ├── src/
-│   ├── index.ts                 # Entry point
+│   ├── index.ts               # Entry point
 │   ├── agent/
-│   │   ├── loop.ts              # Core agent loop
-│   │   ├── permissions.ts       # Permission evaluator
-│   │   ├── compaction.ts        # Context compaction
-│   │   ├── agent.ts             # Base agent class
-│   │   ├── ba-agent.ts          # BA agent definition
-│   │   └── sysadmin-agent.ts    # SysAdmin agent definition
+│   │   ├── loop.ts             # Core agent loop
+│   │   ├── permissions.ts      # Permission evaluator
+│   │   ├── compaction.ts       # Context pruning
+│   │   ├── agent.ts            # Base agent
+│   │   ├── ba-agent.ts         # BA agent
+│   │   └── sysadmin-agent.ts   # SysAdmin agent
 │   ├── config/
-│   │   ├── schema.ts            # Zod v4 schema
-│   │   ├── defaults.ts          # Default config values
-│   │   └── index.ts             # Config loader
+│   │   ├── schema.ts           # Zod v4 schema
+│   │   ├── defaults.ts         # Default config
+│   │   └── index.ts            # Config loader
 │   ├── tools/
-│   │   ├── tool.ts              # Tool type definitions
-│   │   ├── registry.ts          # Tool registry and lazy loading
-│   │   ├── builtins/            # read, write, edit, bash, glob, grep, webfetch, websearch
+│   │   ├── tool.ts             # Tool types
+│   │   ├── registry.ts         # Lazy-load registry
+│   │   ├── builtins/           # read, write, edit, bash, glob, grep, webfetch, websearch
 │   │   ├── ba/                  # document, spreadsheet, diagram, template, dataAnalysis, sql
 │   │   └── sysadmin/            # ssh, scriptGen, docker, k8s, terraform, network
-│   ├── bus/
-│   │   └── event-bus.ts         # Global event bus
+│   ├── bus/event-bus.ts        # Global event bus
 │   ├── storage/
-│   │   ├── index.ts             # SQLite storage init
-│   │   └── messages.ts          # Session CRUD
+│   │   ├── index.ts            # SQLite init
+│   │   └── messages.ts         # Session CRUD
 │   └── cli/
-│       ├── tui/App.tsx           # Ink + React TUI
-│       └── server/Server.ts     # HTTP/SSE server
-├── tests/
-│   ├── permissions.test.ts
-│   ├── edit.test.ts
-│   ├── config.test.ts
-│   ├── agent.test.ts
-│   └── tools.test.ts
-├── .baclirc.json                # Project config (optional)
-├── .gitignore
-├── package.json
-├── tsconfig.json
-├── vitest.config.ts
-└── install.sh                   # curl | bash installer
+│       ├── tui/App.tsx          # Ink + React TUI
+│       └── server/Server.ts    # HTTP/SSE server
+├── tests/                       # 64+ tests
+├── install.sh                   # curl | bash installer
+├── LICENSE                      # MIT
+└── package.json
 ```
-
-### Testing
-
-```bash
-npm test
-```
-
-Runs vitest across 5 test files with 64+ tests covering permissions, edit strategies, config validation, agent loop, and all 20+ tools.
-
-### Adding a new tool
-
-1. Create `src/tools/<category>/<name>.ts` exporting a `ToolDef` as default
-2. Add it to `src/tools/registry.ts` (lazy-load module + agent tool list)
-3. Update system prompts in `src/agent/loop.ts` if needed
-4. Write tests in `tests/`
 
 ---
 
-## Distribution
+## 🤝 Contributing
 
-bacli is distributed as a private package via npm:
+PRs welcome! Keep it simple:
 
-```bash
-npm install -g @bacli/cli
-```
-
-The `install.sh` script tries npm first, then falls back to downloading a binary from GitHub releases. No watermarks, no telemetry, no tracking.
-
-### Privacy
-
-- All AI requests go directly to your configured provider
-- No data is sent to any bacli-controlled server
-- Sessions are stored locally in SQLite
-- No analytics, no telemetry, no phone-home
+1. Fork the repo
+2. Create a feature branch
+3. Write tests
+4. Run `npm test` — all green
+5. Open a PR
 
 ---
 
-## License
+## 🔒 Privacy
 
-Private — all rights reserved.
+- **Zero telemetry.** No analytics, no tracking, no phone-home
+- **Zero watermarks.** Every document is clean
+- **Your data stays local.** Sessions stored in SQLite on your machine
+- **Direct to provider.** AI requests go straight to your configured provider, not through any bacli proxy
+
+---
+
+## 📄 License
+
+MIT — see [LICENSE](LICENSE)
+
+---
+
+<p align="center">
+  Built with 🔥 for BAs and SysAdmins who work in the terminal.
+  <br>
+  <a href="https://github.com/kamikaze1120/BACLI">GitHub</a>
+</p>
