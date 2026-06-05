@@ -53,11 +53,19 @@ No watermarks. No branding. Just clean, professional output.
 
 ## 🚀 Quick start
 
+**Mac / Linux (bash):**
 ```bash
-# One-liner install
 curl -fsSL https://raw.githubusercontent.com/kamikaze1120/BACLI/main/install.sh | bash
+```
 
-# Start the agent
+**Windows (PowerShell):**
+```powershell
+irm https://raw.githubusercontent.com/kamikaze1120/BACLI/main/install.ps1 | iex
+```
+
+Then start the agent:
+
+```bash
 bacli
 ```
 
@@ -69,18 +77,14 @@ bacli "Create a BRD for a customer portal with stakeholder analysis"
 bacli sysadmin "Set up Docker Compose for a Node.js + PostgreSQL app"
 ```
 
-### Other install options
+### Manual install (any platform)
 
 ```bash
-# From source
 git clone https://github.com/kamikaze1120/BACLI.git
 cd BACLI
 npm install
 npm run build
-npm link
-
-# npm global
-npm install -g @bacli/cli
+npm link     # makes `bacli` available globally
 ```
 
 ---
