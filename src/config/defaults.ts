@@ -1,13 +1,14 @@
 import type { BacliConfig } from "./schema.js";
 
 export const defaultConfig: BacliConfig = {
-  model: "deepseek-v4-flash",
-  provider: "deepseek",
-  baseUrl: "https://api.deepseek.com",
-  apiKey: "",
-  smallModel: "deepseek-v4-flash",
-  openrouterModel: "deepseek/deepseek-v4-flash:free",
-  openrouterBaseUrl: "https://openrouter.ai/api/v1",
+  model: "deepseek-ai/deepseek-v4-flash",
+  provider: "nvidia",
+  baseUrl: "https://integrate.api.nvidia.com/v1",
+  apiKey: "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",
+  smallModel: "deepseek-ai/deepseek-v4-flash",
+  maxTokens: 16384,
+  temperature: 1,
+  topP: 0.95,
   shell: process.platform === "win32" ? "powershell" : "bash",
   logLevel: "INFO",
   username: "user",

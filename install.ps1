@@ -48,7 +48,6 @@ try {
   ✓ bacli installed successfully!
 
   Run: $BinName
-  Setup: $BinName setup
 "@ -ForegroundColor Green
 }
 finally {

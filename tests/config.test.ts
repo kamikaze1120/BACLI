@@ -6,8 +6,8 @@ describe("Config Schema Validation", () => {
     const result = BacliConfigSchema.safeParse({});
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.model).toBe("deepseek-v4-flash");
-      expect(result.data.provider).toBe("deepseek");
+      expect(result.data.model).toBe("deepseek-ai/deepseek-v4-flash");
+      expect(result.data.provider).toBe("nvidia");
       expect(result.data.logLevel).toBe("INFO");
       expect(result.data.toolOutput?.maxLines).toBe(200);
       expect(result.data.compaction?.auto).toBe(true);
@@ -16,10 +16,9 @@ describe("Config Schema Validation", () => {
 
   it("accepts a full valid config", () => {
     const config = {
-      model: "deepseek-v4-pro",
-      provider: "deepseek",
-      baseUrl: "https://api.deepseek.com",
-      apiKey: "sk-test-key",
+      model: "deepseek-ai/deepseek-v4-flash",
+      provider: "nvidia",
+      baseUrl: "https://integrate.api.nvidia.com/v1",
       logLevel: "DEBUG" as const,
       agent: {
         ba: {
@@ -106,12 +105,16 @@ describe("Config Schema Validation", () => {
     expect(result.success).toBe(true);
   });
 
-  it("has openrouter defaults", () => {
+  it("has nvidia defaults", () => {
     const result = BacliConfigSchema.safeParse({});
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.openrouterModel).toBe("deepseek/deepseek-v4-flash:free");
-      expect(result.data.openrouterBaseUrl).toBe("https://openrouter.ai/api/v1");
+      expect(result.data.model).toBe("deepseek-ai/deepseek-v4-flash");
+      expect(result.data.provider).toBe("nvidia");
+      expect(result.data.baseUrl).toBe("https://integrate.api.nvidia.com/v1");
+      expect(result.data.maxTokens).toBe(16384);
+      expect(result.data.temperature).toBe(1);
+      expect(result.data.topP).toBe(0.95);
     }
   });
 

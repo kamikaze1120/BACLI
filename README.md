@@ -69,7 +69,7 @@ Then start the agent:
 bacli
 ```
 
-That's it. First launch walks you through getting a free API key (no credit card needed). Then you're off.
+That's it. No API keys, no setup, no accounts — just install and play.
 
 ```bash
 # Or jump straight in with a prompt
@@ -129,57 +129,20 @@ npm link     # makes `bacli` available globally
 
 ---
 
-## 🔧 Getting an API key (free)
-
-bacli uses AI models to do its thing. You need an API key from a supported provider. Here are **free options**:
-
-### Option A: OpenRouter (recommended — free credits)
-
-[OpenRouter](https://openrouter.ai/) gives you free credits on signup, no credit card needed.
-
-```bash
-export OPENROUTER_API_KEY="sk-or-..."
-# Or start bacli — it'll prompt you on first run
-```
-
-### Option B: DeepSeek
-
-```bash
-export DEEPSEEK_API_KEY="sk-..."
-```
-
-### Option C: Bring your own
-
-Any OpenAI-compatible endpoint works:
-
-```bash
-export BACLI_API_KEY="..."
-export BACLI_PROVIDER="custom"
-export BACLI_BASE_URL="https://api.myprovider.com/v1"
-```
-
-On first run, `bacli setup` walks you through the whole thing interactively.
-
----
-
 ## ⚙️ Configuration
 
 Configuration is loaded in this order (later wins):
 
-1. **Global**: `~/.config/bacli/config.json`
-2. **Project**: `.baclirc.json`
-3. **Env vars**: `BACLI_API_KEY`, `BACLI_MODEL`, `BACLI_PROVIDER`, `BACLI_BASE_URL`
-4. **CLI flags**: `--model`, `--provider`
+1. **Default** (built-in — works out of the box)
+2. **Global**: `~/.config/bacli/config.json`
+3. **Project**: `.baclirc.json`
+4. **Env vars**: `BACLI_MODEL`, `BACLI_PROVIDER`, `BACLI_BASE_URL`
+5. **CLI flags**: `--model`, `--provider`
 
-### Quick config
+You don't need to configure anything to get started. To create a project-level override:
 
 ```bash
-# Create project config
 bacli init
-
-# View/set values
-bacli config get model
-bacli config set model deepseek-v4-flash
 ```
 
 ### Full example
@@ -187,11 +150,9 @@ bacli config set model deepseek-v4-flash
 ```json
 {
   "$schema": "https://bacli.dev/config.json",
-  "model": "deepseek-v4-flash",
-  "provider": "deepseek",
-  "baseUrl": "https://api.deepseek.com",
-  "apiKey": "${DEEPSEEK_API_KEY}",
-  "smallModel": "deepseek-v4-flash",
+  "model": "deepseek-ai/deepseek-v4-flash",
+  "provider": "nvidia",
+  "baseUrl": "https://integrate.api.nvidia.com/v1",
   "shell": "powershell",
   "logLevel": "INFO",
   "agent": {
@@ -252,9 +213,7 @@ Options:
 Commands:
   sysadmin [prompt]      Start SysAdmin agent
   init                   Create .baclirc.json
-  config <get|set> <key> [value]   Manage config
   serve [options]        Start HTTP + SSE server
-  setup                  Interactive first-run wizard
 ```
 
 ---

@@ -55,5 +55,4 @@ echo -e "${GREEN}
   ✓ bacli installed successfully!
 
   Run: ${BLUE}bacli${GREEN}
-  Setup: ${BLUE}bacli setup${GREEN}
 ${NC}"

@@ -35,7 +35,6 @@ export async function runLoop(input: LoopInput): Promise<void> {
     const msgs = getMessages(storage, sessionID);
     const lastAssistant = [...msgs].reverse().find((m) => m.role === "assistant");
 
-    // Termination check (Opencode pattern)
     const hasToolCalls = lastAssistant?.parts?.some(
       (p) => p.type === "tool-call" && p.status !== "completed" && p.status !== "error"
     );
@@ -293,17 +292,9 @@ function convertToolsToAISDK(
 }
 
 function createProvider(config: BacliConfig) {
-  // If no API key, try OpenRouter free tier
-  if (!config.apiKey) {
-    return createOpenAICompatible({
-      name: "openrouter",
-      baseURL: "https://openrouter.ai/api/v1",
-      apiKey: "",
-    });
-  }
   return createOpenAICompatible({
-    name: config.provider || "deepseek",
-    baseURL: config.baseUrl || "https://api.deepseek.com",
+    name: "nvidia",
+    baseURL: config.baseUrl || "https://integrate.api.nvidia.com/v1",
     apiKey: config.apiKey,
   });
 }

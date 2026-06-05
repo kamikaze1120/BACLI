@@ -71,9 +71,9 @@ describe("Agent Permissions Integration", () => {
 describe("Config Default Merging", () => {
   it("default config has correct structure", async () => {
     const { defaultConfig } = await import("../src/config/defaults.js");
-    expect(defaultConfig.model).toBe("deepseek-v4-flash");
-    expect(defaultConfig.provider).toBe("deepseek");
-    expect(defaultConfig.baseUrl).toBe("https://api.deepseek.com");
+    expect(defaultConfig.model).toBe("deepseek-ai/deepseek-v4-flash");
+    expect(defaultConfig.provider).toBe("nvidia");
+    expect(defaultConfig.baseUrl).toBe("https://integrate.api.nvidia.com/v1");
     expect(defaultConfig.compaction?.auto).toBe(true);
     expect(defaultConfig.toolOutput?.maxBytes).toBe(8192);
   });
