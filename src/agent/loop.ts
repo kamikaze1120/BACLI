@@ -19,13 +19,13 @@ export interface LoopInput {
   initialPrompt: string;
   agent: string;
   mode?: "build" | "plan";
-  abortSignal?: AbortSignal;
+  abortController: AbortController;
 }
 
 export async function runLoop(input: LoopInput): Promise<void> {
   const { config, bus, storage, sessionID, initialPrompt, agent } = input;
   const mode = input.mode ?? "build";
-  const abort = input.abortSignal ?? new AbortController().signal;
+  const abortController = input.abortController;
   let step = 0;
 
   const userMsgID = createMessage(storage, sessionID, "user");
@@ -68,7 +68,7 @@ export async function runLoop(input: LoopInput): Promise<void> {
     try {
       // Apply timeout to LLM call
       const timeoutId = setTimeout(() => {
-        (abort as any).abort?.();
+        abortController.abort();
       }, LLM_TIMEOUT_MS);
 
       const result = streamText({
@@ -77,7 +77,7 @@ export async function runLoop(input: LoopInput): Promise<void> {
         messages: modelMessages as any,
         tools: mode === "plan" ? undefined : aiTools as any,
         toolChoice: mode === "plan" ? "none" as any : "auto" as any,
-        abortSignal: abort,
+        abortSignal: abortController.signal,
       });
 
       let fullText = "";
@@ -116,7 +116,7 @@ export async function runLoop(input: LoopInput): Promise<void> {
               config,
               bus,
               storage,
-              abort,
+              abort: abortController.signal,
               args: part.input || part.args || {},
               partID,
             });

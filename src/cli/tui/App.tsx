@@ -45,11 +45,6 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
   const configRef = useRef<any>(null);
   const storageRef = useRef<Storage | null>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const messagesRef = useRef<MessageDisplay[]>([]);
-  const toolCallsRef = useRef<Map<string, ToolCallDisplay>>(new Map());
-
-  messagesRef.current = messages;
-  toolCallsRef.current = toolCalls;
 
   useEffect(() => {
     (async () => {
@@ -120,6 +115,11 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
   const handleSubmit = useCallback(async (prompt: string) => {
     if (!prompt.trim() || busy || !storageRef.current || !configRef.current) return;
 
+    // Handle slash commands
+    const cmd = prompt.trim().toLowerCase();
+    if (cmd === "/plan") { setMode("plan"); return; }
+    if (cmd === "/build") { setMode("build"); return; }
+
     setInput("");
     setBusy(true);
     setError(null);
@@ -128,7 +128,8 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
     setMessages((prev) => [...prev, { role: "user", text: prompt }]);
     setMessages((prev) => [...prev, { role: "assistant", text: "" }]);
 
-    abortRef.current = new AbortController();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     try {
       await runLoop({
@@ -139,7 +140,7 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
         initialPrompt: prompt,
         agent,
         mode,
-        abortSignal: abortRef.current.signal,
+        abortController: controller,
       });
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -175,9 +176,6 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
     }
     if (key.ctrl && inputKey === "p") {
       setShowSessions((prev) => !prev);
-    }
-    if (key.ctrl && inputKey === "m") {
-      setMode((prev) => prev === "build" ? "plan" : "build");
     }
   });
 
@@ -263,7 +261,7 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
       {/* Status bar */}
       <Box borderStyle="single" borderColor={theme.border} paddingX={1}>
         <Text color={theme.muted}>
-          [Tab: Agent] [Ctrl+M: {mode === "build" ? "Plan" : "Build"}] [Ctrl+P: Sessions] [Ctrl+C: {busy ? "Stop" : "Exit"}]
+          [Tab: Agent] [/plan /build] [Ctrl+P: Sessions] [Ctrl+C: {busy ? "Stop" : "Exit"}]
         </Text>
         <Box flexGrow={1} />
         <Text color={theme.textMuted}>session: {currentSessionID.slice(0, 8)}</Text>
