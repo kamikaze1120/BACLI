@@ -24,7 +24,7 @@
   ║  │  Data Analysis│ Scripts (any lang)│  Fork/Resume │    ║
   ║  └──────────────────────────────────────────────────┘    ║
   ║                                                          ║
-  ║  ★ No watermarks ★ No telemetry ★ Open source (MIT) ★   ║
+  ║  ★ No watermarks ★ No telemetry ★ Open source (MIT) ★  ║
   ║                                                          ║
   ╚══════════════════════════════════════════════════════════╝
 ```
@@ -95,11 +95,11 @@ npm install -g @bacli/cli
 │  > Create a BRD for an inventory management system          │
 │                                                             │
 │  ┌─ Generating document ──────────────────────────┐         │
-│  │  ✓ Creating Business Requirements Document      │         │
-│  │  ✓ Adding stakeholders section                  │         │
-│  │  ✓ Generating functional requirements           │         │
-│  │  ✓ Saving to output/brd-inventory.docx           │         │
-│  └─────────────────────────────────────────────────┘         │
+│  │  ✓ Creating Business Requirements Document      │        │
+│  │  ✓ Adding stakeholders section                  │        │
+│  │  ✓ Generating functional requirements           │        │
+│  │  ✓ Saving to output/brd-inventory.docx          │        │
+│  └─────────────────────────────────────────────────┘        │
 │                                                             │
 │  Here's your BRD! It covers:                                │
 │  • Executive summary                                        │
@@ -107,9 +107,9 @@ npm install -g @bacli/cli
 │  • 15 functional requirements across 4 modules              │
 │  • Timeline and milestones                                  │
 │                                                             │
-│  >                                                        │
+│  >                                                          │
 ├─────────────────────────────────────────────────────────────┤
-│  [BA] [SysAdmin]  Ctrl+P sessions  Ctrl+C cancel           │
+│  [BA] [SysAdmin]  Ctrl+P sessions  Ctrl+C cancel            │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -325,25 +325,25 @@ Rules use glob patterns and per-agent overrides:
 
 ```
 ┌───────────────────────────────────────────────────────┐
-│                       bacli CLI                        │
-│  ┌──────────┐  ┌──────────┐  ┌─────────┐  ┌───────┐  │
-│  │ TUI      │  │ HTTP     │  │ CLI     │  │ Config│  │
-│  │ (Ink+React)│  │ Server  │  │(Commander)│  │(Zod)  │  │
-│  └────┬─────┘  └────┬─────┘  └────┬────┘  └───┬───┘  │
-│       └──────────────┴──────────────┴────────────┘     │
-│                          │                              │
-│  ┌──────────────────────┴────────────────────────┐     │
-│  │               Agent Loop                       │     │
-│  │  ┌──────────┐  ┌──────────┐  ┌────────────┐  │     │
-│  │  │ Provider │  │ Tools    │  │ Permission │  │     │
-│  │  │ (AI SDK) │  │ (20+)    │  │ System     │  │     │
-│  │  └──────────┘  └──────────┘  └────────────┘  │     │
-│  └───────────────────────────────────────────────┘     │
-│                          │                              │
-│  ┌──────────────────────┴────────────────────────┐     │
-│  │            Storage (SQLite)                     │     │
-│  │  sessions │ messages │ parts │ compaction     │     │
-│  └───────────────────────────────────────────────┘     │
+│                       bacli CLI                       │
+│  ┌──────────┐  ┌──────────┐  ┌─────────┐  ┌───────┐   │
+│  │ TUI      │  │ HTTP     │  │ CLI     │  │Config │   │
+│  │Ink+React)│  │ Server   │  │Commander│  │Zod    │   │
+│  └────┬─────┘  └────┬─────┘  └────┬────┘  └───┬───┘   │
+│       └─────────────┴─────────────┴───────────┘       │
+│                         │                             │
+│  ┌──────────────────────┴────────────────────────┐    │
+│  │               Agent Loop                      │    │
+│  │  ┌──────────┐  ┌──────────┐  ┌────────────┐   │    │
+│  │  │ Provider │  │ Tools    │  │ Permission │   │    │
+│  │  │ (AI SDK) │  │ (20+)    │  │ System     │   │    │
+│  │  └──────────┘  └──────────┘  └────────────┘   │    │
+│  └───────────────────────────────────────────────┘    │
+│                         │                             │
+│  ┌──────────────────────┴────────────────────────┐    │
+│  │            Storage (SQLite)                   │    │
+│  │  sessions │ messages │ parts │ compaction     │    │
+│  └───────────────────────────────────────────────┘    │
 └───────────────────────────────────────────────────────┘
 ```
 
