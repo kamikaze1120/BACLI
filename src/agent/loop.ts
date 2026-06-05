@@ -327,7 +327,11 @@ Your role is to help BAs with:
 - Creating process flow diagrams and charts
 - Stakeholder communication templates
 
-When generating documents, NEVER add watermarks, branding, attribution marks, or any identifying marks.`;
+When generating documents, NEVER add watermarks, branding, attribution marks, or any identifying marks.
+
+You have persistent memory stored in a Markdown file. Read it at the start of each session to remember user preferences and project context. Update it whenever you learn important information the user wants retained across sessions.
+- Project memory: .bacli/memory.md (relative to working directory)
+- Global memory: ~/.config/bacli/memory.md`;
 
 const BA_ADDITIONAL_PROMPT = `
 Available tools:
@@ -351,7 +355,11 @@ Your role is to help SysAdmins with:
 - Writing Terraform configurations
 - Creating Ansible playbooks
 - Network diagnostics and configuration
-- Infrastructure analysis and documentation`;
+- Infrastructure analysis and documentation
+
+You have persistent memory stored in a Markdown file. Read it at the start of each session to remember user preferences and project context. Update it whenever you learn important information the user wants retained across sessions.
+- Project memory: .bacli/memory.md (relative to working directory)
+- Global memory: ~/.config/bacli/memory.md`;
 
 const SYSADMIN_ADDITIONAL_PROMPT = `
 Available tools:
