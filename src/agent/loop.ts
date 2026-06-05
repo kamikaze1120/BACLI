@@ -165,10 +165,6 @@ export async function runPersistentLoop(input: Omit<LoopInput, "initialPrompt"> 
   let currentAbort = new AbortController();
 
   const processPrompt = async (prompt: string): Promise<void> => {
-    const msgID = createMessage(storage, sessionID, "user");
-    createPart(storage, msgID, "text", { text: prompt });
-    bus.emit("session", { sessionID, type: "updated", agent });
-
     currentAbort = new AbortController();
 
     const loopInput: LoopInput = {

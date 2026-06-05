@@ -81,7 +81,7 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
   const [toolCalls, setToolCalls] = useState<Map<string, ToolCallDisplay>>(new Map());
   const [agentStatus, setAgentStatus] = useState<"busy" | "awaiting-input" | "error" | "starting">("starting");
   const [showSessions, setShowSessions] = useState(false);
-  const [showInfo, setShowInfo] = useState(false);
+  const [showInfo, setShowInfo] = useState(true);
   const [todoItems, setTodoItems] = useState<TodoItem[]>([]);
   const [tokenStats, setTokenStats] = useState({ total: 0, limit: 131072, msgs: 0 });
 
@@ -205,7 +205,7 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
   }, []);
 
   const handleSubmit = useCallback((prompt: string) => {
-    if (!prompt.trim() || agentStatus !== "awaiting-input") return;
+    if (!prompt.trim()) return;
 
     const cmd = prompt.trim().toLowerCase();
     if (cmd === "/plan") { setMode("plan"); return; }
@@ -216,7 +216,7 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
     setMessages((prev) => [...prev, { role: "user", text: prompt }]);
     setMessages((prev) => [...prev, { role: "assistant", text: "" }]);
     submitRef.current(prompt);
-  }, [agentStatus]);
+  }, []);
 
   useInput((inputKey, key) => {
     if (key.ctrl && inputKey === "c") {
