@@ -411,20 +411,26 @@ PRs welcome! Keep it simple:
 **Mac / Linux:**
 ```bash
 npm uninstall -g @bacli/cli
-rm -rf ~/.config/bacli
+rm -rf ~/.bacli ~/.config/bacli
 ```
 
 **Windows (PowerShell):**
 ```powershell
 npm uninstall -g @bacli/cli
-Remove-Item -Recurse -Force "$env:USERPROFILE\.config\bacli"
+Remove-Item -Recurse -Force "$env:LOCALAPPDATA\bacli", "$env:USERPROFILE\.config\bacli"
 ```
 
-This removes the `bacli` command, all config, sessions, and memory data. If you also want to remove local project memory:
+What this removes:
+| Path | Contents |
+|---|---|
+| `~/.bacli/src` (or `%LOCALAPPDATA%\bacli`) | Installed source code |
+| `~/.config/bacli` | Config, sessions (SQLite), memory, auth |
+| `npm global symlink` | The `bacli` command |
 
+To also clean up local project data:
 ```bash
-rm -rf .bacli          # Mac/Linux
-Remove-Item -Recurse -Force .bacli   # Windows
+rm -rf .bacli                                   # Mac/Linux
+Remove-Item -Recurse -Force ".bacli"             # Windows PowerShell
 ```
 
 ---

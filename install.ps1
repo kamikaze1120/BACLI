@@ -25,32 +25,30 @@ try { $null = git --version } catch {
   exit 1
 }
 
-# Install from GitHub source
-$tmpDir = Join-Path $env:TEMP "bacli-install-$([System.IO.Path]::GetRandomFileName())"
-New-Item -ItemType Directory -Path $tmpDir -Force | Out-Null
+# Clone to permanent location so npm link stays valid
+$installDir = "$env:LOCALAPPDATA\bacli"
+Remove-Item -Recurse -Force $installDir -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Path $installDir -Force | Out-Null
 
-try {
-  Write-Host "  → Cloning from GitHub..." -ForegroundColor Cyan
-  git clone --depth 1 $Repo $tmpDir 2>&1 | Out-Null
+Write-Host "  → Cloning from GitHub..." -ForegroundColor Cyan
+git clone --depth 1 $Repo $installDir 2>&1 | Out-Null
 
-  Push-Location $tmpDir
+Push-Location $installDir
 
-  Write-Host "  → Installing dependencies..." -ForegroundColor Cyan
-  npm install --production 2>&1 | Out-Null
+Write-Host "  → Installing dependencies..." -ForegroundColor Cyan
+npm install --production 2>&1 | Out-Null
 
-  Write-Host "  → Building..." -ForegroundColor Cyan
-  npm run build 2>&1 | Out-Null
+Write-Host "  → Building..." -ForegroundColor Cyan
+npm run build 2>&1 | Out-Null
 
-  Write-Host "  → Linking globally as '$BinName'..." -ForegroundColor Cyan
-  npm link 2>&1 | Out-Null
+Write-Host "  → Linking globally as '$BinName'..." -ForegroundColor Cyan
+npm link 2>&1 | Out-Null
 
-  Write-Host @"
+Pop-Location
+
+Write-Host @"
   ✓ bacli installed successfully!
 
   Run: $BinName
+  Source: $installDir
 "@ -ForegroundColor Green
-}
-finally {
-  Pop-Location
-  Remove-Item -Recurse -Force $tmpDir -ErrorAction SilentlyContinue
-}

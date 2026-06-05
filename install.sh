@@ -7,7 +7,6 @@ BIN_NAME="bacli"
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
 NC='\033[0m'
 
 echo -e "${BLUE}
@@ -16,9 +15,8 @@ echo -e "${BLUE}
   ╚════════════════════════════╝
 ${NC}"
 
-# Check prerequisites
 if ! command -v node &> /dev/null; then
-  echo -e "${RED}✖ Node.js 20+ is required. Install it from https://nodejs.org${NC}"
+  echo -e "${RED}✖ Node.js 20+ is required. Install from https://nodejs.org${NC}"
   exit 1
 fi
 
@@ -29,18 +27,18 @@ if [ "$NODE_VER" -lt 20 ]; then
 fi
 
 if ! command -v git &> /dev/null; then
-  echo -e "${RED}✖ git is required. Install it from https://git-scm.com${NC}"
+  echo -e "${RED}✖ git is required. Install from https://git-scm.com${NC}"
   exit 1
 fi
 
-# Install from GitHub source
-TMP_DIR=$(mktemp -d)
-trap 'rm -rf "$TMP_DIR"' EXIT
+# Clone to permanent location so npm link stays valid
+INSTALL_DIR="${HOME}/.bacli/src"
+mkdir -p "$INSTALL_DIR"
 
 echo -e "${BLUE}  → Cloning from GitHub...${NC}"
-git clone --depth 1 "$REPO" "$TMP_DIR" 2>/dev/null
+git clone --depth 1 "$REPO" "$INSTALL_DIR" 2>/dev/null
 
-cd "$TMP_DIR"
+cd "$INSTALL_DIR"
 
 echo -e "${BLUE}  → Installing dependencies...${NC}"
 npm install --production 2>/dev/null
@@ -54,5 +52,6 @@ npm link 2>/dev/null
 echo -e "${GREEN}
   ✓ bacli installed successfully!
 
-  Run: ${BLUE}bacli${GREEN}
+  Run: ${BLUE}${BIN_NAME}${GREEN}
+  Source: ${BLUE}${INSTALL_DIR}${GREEN}
 ${NC}"
