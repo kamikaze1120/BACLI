@@ -9,6 +9,8 @@ import { createToolContext, type ToolDef } from "../tools/tool.js";
 import { evaluatePermission } from "./permissions.js";
 import { ulid } from "ulid";
 
+const LLM_TIMEOUT_MS = 60000;
+
 export interface LoopInput {
   config: BacliConfig;
   bus: GlobalBus;
@@ -16,11 +18,13 @@ export interface LoopInput {
   sessionID: string;
   initialPrompt: string;
   agent: string;
+  mode?: "build" | "plan";
   abortSignal?: AbortSignal;
 }
 
 export async function runLoop(input: LoopInput): Promise<void> {
   const { config, bus, storage, sessionID, initialPrompt, agent } = input;
+  const mode = input.mode ?? "build";
   const abort = input.abortSignal ?? new AbortController().signal;
   let step = 0;
 
@@ -51,7 +55,7 @@ export async function runLoop(input: LoopInput): Promise<void> {
       sessionID, config, bus, agent, storage,
     });
 
-    const system = buildSystemPrompt(agent, config);
+    const system = buildSystemPrompt(agent, config, mode);
     const modelMessages = convertToModelMessages(msgs, msgs.length > 1);
     const assistantMsgID = createMessage(storage, sessionID, "assistant");
 
@@ -62,12 +66,17 @@ export async function runLoop(input: LoopInput): Promise<void> {
     });
 
     try {
+      // Apply timeout to LLM call
+      const timeoutId = setTimeout(() => {
+        (abort as any).abort?.();
+      }, LLM_TIMEOUT_MS);
+
       const result = streamText({
         model,
         system,
         messages: modelMessages as any,
-        tools: aiTools as any,
-        toolChoice: "auto" as any,
+        tools: mode === "plan" ? undefined : aiTools as any,
+        toolChoice: mode === "plan" ? "none" as any : "auto" as any,
         abortSignal: abort,
       });
 
@@ -82,6 +91,8 @@ export async function runLoop(input: LoopInput): Promise<void> {
           fullText += part.textDelta || part.text || "";
           bus.emit("text:delta", { messageID: assistantMsgID, delta: part.textDelta || part.text || "", finished: false });
         } else if (part.type === "tool-call") {
+          if (mode === "plan") continue;
+
           const toolID = part.toolName;
           const toolDef = tools[toolID];
 
@@ -114,10 +125,16 @@ export async function runLoop(input: LoopInput): Promise<void> {
         } else if (part.type === "step-finish") {
           finishReason = part.finishReason ?? "stop";
         } else if (part.type === "error") {
-          bus.emit("error", part.error || new Error("Unknown AI error"));
+          const err = part.error || new Error("Unknown AI error");
+          bus.emit("error", err);
           finishReason = "error";
+          if (mode === "plan") {
+            fullText += `\n[Error] ${err.message}`;
+          }
         }
       }
+
+      clearTimeout(timeoutId);
 
       await Promise.all(toolCallPromises);
 
@@ -128,9 +145,14 @@ export async function runLoop(input: LoopInput): Promise<void> {
 
       const usage = (result as any).usage;
       finishMessage(storage, assistantMsgID, finishReason, usage?.totalTokens ?? 0);
+
+      // In plan mode, break after one step — user confirms before building
+      if (mode === "plan") break;
     } catch (err) {
-      bus.emit("error", err instanceof Error ? err : new Error(String(err)));
+      const error = err instanceof Error ? err : new Error(String(err));
+      bus.emit("error", error);
       finishMessage(storage, assistantMsgID, "error", 0);
+      throw error;
     }
 
     storage.prepare(`UPDATE sessions SET updated_at = datetime('now') WHERE id = ?`).run(sessionID);
@@ -299,12 +321,17 @@ function createProvider(config: BacliConfig) {
   });
 }
 
-function buildSystemPrompt(agent: string, config: BacliConfig): string {
+function buildSystemPrompt(agent: string, config: BacliConfig, mode: string): string {
   const agentDesc = agent === "ba" ? BA_SYSTEM_PROMPT : SYSADMIN_SYSTEM_PROMPT;
   const additional = agent === "ba" ? BA_ADDITIONAL_PROMPT : SYSADMIN_ADDITIONAL_PROMPT;
 
+  const modeInstr = mode === "plan"
+    ? "\n\nYou are in PLAN mode. Explain your approach step by step. Do NOT execute any tools. The user will review your plan and switch to BUILD mode to proceed."
+    : "\n\nYou are in BUILD mode. Execute tools and generate outputs directly. Do not ask for permission unless the tool's permission level requires it.";
+
   return [
     agentDesc,
+    modeInstr,
     "",
     `<env>
   Working directory: ${process.cwd()}
