@@ -42,6 +42,17 @@ export interface LogEvent {
   timestamp: number;
 }
 
+export interface UserInputEvent {
+  prompt: string;
+  sessionID: string;
+}
+
+export interface AgentStatusEvent {
+  status: "busy" | "awaiting-input" | "error";
+  message?: string;
+  sessionID: string;
+}
+
 type EventMap = {
   "tool:status": [ToolStatusEvent];
   "text:delta": [TextDeltaEvent];
@@ -50,6 +61,8 @@ type EventMap = {
   "session": [SessionEvent];
   "log": [LogEvent];
   "error": [Error];
+  "user:input": [UserInputEvent];
+  "agent:status": [AgentStatusEvent];
 };
 
 export class GlobalBus {

@@ -1,7 +1,7 @@
 import { streamText, wrapLanguageModel } from "ai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import type { BacliConfig } from "../config/schema.js";
-import type { GlobalBus } from "../bus/event-bus.js";
+import type { GlobalBus, UserInputEvent } from "../bus/event-bus.js";
 import type { Storage } from "../storage/index.js";
 import { createMessage, createPart, finishMessage, getMessages, updateSessionTitle } from "../storage/messages.js";
 import { resolveTools } from "../tools/registry.js";
@@ -156,6 +156,81 @@ export async function runLoop(input: LoopInput): Promise<void> {
     }
 
     storage.prepare(`UPDATE sessions SET updated_at = datetime('now') WHERE id = ?`).run(sessionID);
+  }
+}
+
+export async function runPersistentLoop(input: Omit<LoopInput, "initialPrompt"> & { initialPrompt?: string }): Promise<void> {
+  const { config, bus, storage, sessionID, agent } = input;
+  let currentMode = input.mode ?? "build";
+  let currentAbort = new AbortController();
+
+  const processPrompt = async (prompt: string): Promise<void> => {
+    const msgID = createMessage(storage, sessionID, "user");
+    createPart(storage, msgID, "text", { text: prompt });
+    bus.emit("session", { sessionID, type: "updated", agent });
+
+    currentAbort = new AbortController();
+
+    const loopInput: LoopInput = {
+      config,
+      bus,
+      storage,
+      sessionID,
+      initialPrompt: prompt,
+      agent,
+      mode: currentMode,
+      abortController: currentAbort,
+    };
+
+    await runLoop(loopInput);
+  };
+
+  // Listen for input at all times — lets us abort a running prompt
+  let inputResolver: ((prompt: string | null) => void) | null = null;
+
+  const unsubInput = bus.on("user:input", (data: UserInputEvent) => {
+    if (data.sessionID !== sessionID) return;
+    if (inputResolver) {
+      inputResolver(data.prompt);
+      inputResolver = null;
+    } else {
+      // We're busy — abort current run
+      currentAbort.abort();
+    }
+  });
+
+  const waitForInput = (): Promise<string | null> => {
+    return new Promise((resolve) => {
+      inputResolver = resolve;
+    });
+  };
+
+  try {
+    if (input.initialPrompt) {
+      bus.emit("agent:status", { status: "busy", sessionID });
+      await processPrompt(input.initialPrompt).catch((err) => {
+        bus.emit("agent:status", { status: "error", message: err.message, sessionID });
+      });
+    }
+
+    while (true) {
+      bus.emit("agent:status", { status: "awaiting-input", sessionID });
+
+      const nextInput = await waitForInput();
+      if (nextInput == null || nextInput === "") break;
+
+      const cmd = nextInput.trim().toLowerCase();
+      if (cmd === "/exit" || cmd === "/quit") break;
+      if (cmd === "/plan") { currentMode = "plan"; continue; }
+      if (cmd === "/build") { currentMode = "build"; continue; }
+
+      bus.emit("agent:status", { status: "busy", sessionID });
+      await processPrompt(nextInput).catch((err) => {
+        bus.emit("agent:status", { status: "error", message: err.message, sessionID });
+      });
+    }
+  } finally {
+    unsubInput();
   }
 }
 

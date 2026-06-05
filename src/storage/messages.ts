@@ -116,6 +116,20 @@ export function updateSessionTitle(storage: Storage, sessionID: string, title: s
   ).run(title, sessionID);
 }
 
+export function getSessionTotalTokens(storage: Storage, sessionID: string): number {
+  const row = storage.prepare(
+    `SELECT COALESCE(SUM(tokens), 0) as total FROM messages WHERE session_id = ?`
+  ).get(sessionID) as { total: number } | undefined;
+  return row?.total ?? 0;
+}
+
+export function getSessionMessagesCount(storage: Storage, sessionID: string): number {
+  const row = storage.prepare(
+    `SELECT COUNT(*) as count FROM messages WHERE session_id = ?`
+  ).get(sessionID) as { count: number } | undefined;
+  return row?.count ?? 0;
+}
+
 export function listSessions(storage: Storage): Array<{ id: string; title: string; agent: string; created_at: string }> {
   return storage.prepare(
     `SELECT id, title, agent, created_at FROM sessions ORDER BY updated_at DESC LIMIT 50`

@@ -1,11 +1,11 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { render, Box, Text, useInput, useApp } from "ink";
 import TextInput from "ink-text-input";
-import { GlobalBus, type ToolStatusEvent, type TextDeltaEvent } from "../../bus/event-bus.js";
+import { GlobalBus, type ToolStatusEvent, type TextDeltaEvent, type AgentStatusEvent } from "../../bus/event-bus.js";
 import { initStorage, type Storage } from "../../storage/index.js";
-import { createSession, listSessions } from "../../storage/messages.js";
+import { createSession, getSessionTotalTokens, getSessionMessagesCount, listSessions } from "../../storage/messages.js";
 import { loadConfig } from "../../config/index.js";
-import { runLoop } from "../../agent/loop.js";
+import { runPersistentLoop } from "../../agent/loop.js";
 import { defaultTheme } from "./Theme.js";
 
 interface MessageDisplay {
@@ -27,7 +27,44 @@ interface SessionEntry {
   agent: string;
 }
 
+interface TodoItem {
+  text: string;
+  done: boolean;
+}
+
 type Mode = "build" | "plan";
+
+const MODEL_CONTEXT_LIMITS: Record<string, number> = {
+  "deepseek-ai/deepseek-v4-flash": 131072,
+};
+
+const MODEL_PRICES: Record<string, { input: number; output: number }> = {
+  "deepseek-ai/deepseek-v4-flash": { input: 0.27, output: 1.10 },
+};
+
+function getContextLimit(model: string): number {
+  for (const [key, limit] of Object.entries(MODEL_CONTEXT_LIMITS)) {
+    if (model.includes(key) || key.includes(model)) return limit;
+  }
+  return 131072;
+}
+
+function getPricePerM(model: string): { input: number; output: number } {
+  for (const [key, price] of Object.entries(MODEL_PRICES)) {
+    if (model.includes(key) || key.includes(model)) return price;
+  }
+  return { input: 0.25, output: 1.00 };
+}
+
+function extractTodos(text: string): TodoItem[] {
+  const items: TodoItem[] = [];
+  const regex = /[-*]\s*\[([ xX])\]\s*(.+)/g;
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    items.push({ text: match[2].trim(), done: match[1].toLowerCase() === "x" });
+  }
+  return items;
+}
 
 function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" | "sysadmin"; initialPrompt?: string }) {
   const { exit } = useApp();
@@ -38,13 +75,40 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
   const [sessions, setSessions] = useState<SessionEntry[]>([]);
   const [currentSessionID, setCurrentSessionID] = useState("");
   const [toolCalls, setToolCalls] = useState<Map<string, ToolCallDisplay>>(new Map());
-  const [busy, setBusy] = useState(false);
+  const [agentStatus, setAgentStatus] = useState<"busy" | "awaiting-input" | "error" | "starting">("starting");
   const [showSessions, setShowSessions] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [showInfo, setShowInfo] = useState(false);
+  const [todoItems, setTodoItems] = useState<TodoItem[]>([]);
+  const [tokenStats, setTokenStats] = useState({ total: 0, limit: 131072, msgs: 0 });
 
   const configRef = useRef<any>(null);
   const storageRef = useRef<Storage | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  const theme = defaultTheme;
+  const sessionIdRef = useRef("");
+
+  const updateStats = useCallback((sid: string) => {
+    if (!storageRef.current || !sid) return;
+    const limit = getContextLimit(configRef.current?.model || "");
+    setTokenStats({
+      total: getSessionTotalTokens(storageRef.current, sid),
+      limit,
+      msgs: getSessionMessagesCount(storageRef.current, sid),
+    });
+  }, []);
+
+  const updateTodos = useCallback(() => {
+    const all: TodoItem[] = [];
+    for (const msg of messages) {
+      if (msg.role === "assistant") {
+        all.push(...extractTodos(msg.text));
+      }
+    }
+    setTodoItems(all.slice(0, 20));
+  }, [messages]);
+
+  useEffect(() => { updateTodos(); }, [messages, updateTodos]);
+
+  const submitRef = useRef<(prompt: string) => void>(() => {});
 
   useEffect(() => {
     (async () => {
@@ -55,6 +119,7 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
       storageRef.current = storage;
 
       const sessionID = createSession(storage, agent, config.model, config.provider);
+      sessionIdRef.current = sessionID;
       setCurrentSessionID(sessionID);
       refreshSessions(storage);
 
@@ -65,7 +130,10 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
           const updated = [...prev];
           const last = updated[updated.length - 1];
           if (last?.role === "assistant") {
-            if (data.finished) return updated;
+            if (data.finished) {
+              updateStats(sessionIdRef.current);
+              return updated;
+            }
             updated[updated.length - 1] = { ...last, text: last.text + (data.delta || "") };
           }
           return updated;
@@ -93,83 +161,65 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
         if (storageRef.current) refreshSessions(storageRef.current);
       });
 
+      const unsubAgent = bus.on("agent:status", (data: AgentStatusEvent) => {
+        if (data.sessionID === sessionID) {
+          setAgentStatus(data.status);
+          if (data.status !== "busy") updateStats(sessionID);
+        }
+      });
+
+      updateStats(sessionID);
+
+      // Launch persistent loop in background (no await)
+      runPersistentLoop({
+        config,
+        bus,
+        storage,
+        sessionID,
+        agent,
+        initialPrompt: initialPrompt || undefined,
+        mode,
+        abortController: new AbortController(),
+      }).catch((err) => {
+        setAgentStatus("error");
+      });
+
+      submitRef.current = (prompt: string) => {
+        bus.emit("user:input", { prompt, sessionID });
+      };
+
       return () => {
         unsubText();
         unsubTool();
         unsubSession();
+        unsubAgent();
       };
     })();
   }, []);
-
-  useEffect(() => {
-    if (initialPrompt && !busy) {
-      handleSubmit(initialPrompt);
-    }
-  }, [initialPrompt]);
 
   const refreshSessions = useCallback((storage: Storage) => {
     const list = listSessions(storage);
     setSessions(list.map((s) => ({ id: s.id, title: s.title || s.id.slice(0, 8), agent: s.agent })));
   }, []);
 
-  const handleSubmit = useCallback(async (prompt: string) => {
-    if (!prompt.trim() || busy || !storageRef.current || !configRef.current) return;
+  const handleSubmit = useCallback((prompt: string) => {
+    if (!prompt.trim()) return;
 
-    // Handle slash commands
     const cmd = prompt.trim().toLowerCase();
     if (cmd === "/plan") { setMode("plan"); return; }
     if (cmd === "/build") { setMode("build"); return; }
 
     setInput("");
-    setBusy(true);
-    setError(null);
     setToolCalls(new Map());
-
     setMessages((prev) => [...prev, { role: "user", text: prompt }]);
     setMessages((prev) => [...prev, { role: "assistant", text: "" }]);
-
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    try {
-      await runLoop({
-        config: configRef.current,
-        bus: GlobalBus.getInstance(),
-        storage: storageRef.current,
-        sessionID: currentSessionID,
-        initialPrompt: prompt,
-        agent,
-        mode,
-        abortController: controller,
-      });
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      setMessages((prev) => {
-        const updated = [...prev];
-        const last = updated[updated.length - 1];
-        if (last?.role === "assistant" && !last.text) {
-          updated[updated.length - 1] = { ...last, text: `[Error] ${errMsg}` };
-        } else {
-          updated.push({ role: "assistant", text: `[Error] ${errMsg}` });
-        }
-        return updated;
-      });
-      setError(errMsg);
-    } finally {
-      setBusy(false);
-      abortRef.current = null;
-      if (storageRef.current) refreshSessions(storageRef.current);
-    }
-  }, [busy, currentSessionID, agent, mode, refreshSessions]);
+    submitRef.current(prompt);
+  }, []);
 
   useInput((inputKey, key) => {
     if (key.ctrl && inputKey === "c") {
-      if (busy && abortRef.current) {
-        abortRef.current.abort();
-        setBusy(false);
-      } else {
-        exit();
-      }
+      GlobalBus.getInstance().emit("user:input", { prompt: "", sessionID: sessionIdRef.current });
+      exit();
     }
     if (key.tab) {
       setAgent((prev) => prev === "ba" ? "sysadmin" : "ba");
@@ -177,9 +227,17 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
     if (key.ctrl && inputKey === "p") {
       setShowSessions((prev) => !prev);
     }
+    if (key.ctrl && inputKey === "i") {
+      setShowInfo((prev) => !prev);
+      if (!showInfo) updateStats(sessionIdRef.current);
+    }
   });
 
-  const theme = defaultTheme;
+  const pct = tokenStats.limit > 0 ? ((tokenStats.total / tokenStats.limit) * 100).toFixed(1) : "0.0";
+  const price = getPricePerM(configRef.current?.model || "");
+  const estCost = ((tokenStats.total / 1000000) * (price.input + price.output) / 2).toFixed(4);
+  const isBusy = agentStatus === "busy" || agentStatus === "starting";
+  const statusLabel = agentStatus === "starting" ? "starting" : agentStatus === "busy" ? "running" : "idle";
 
   return (
     <Box flexDirection="column" height="100%">
@@ -195,7 +253,7 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
         <Box flexGrow={1} />
         <Text color={theme.textMuted}>{configRef.current?.model || "no-model"}</Text>
         <Box width={1} />
-        <Text color={theme.muted}>{busy ? "● running" : "● idle"}</Text>
+        <Text color={theme.muted}>● {statusLabel}</Text>
       </Box>
 
       {/* Main content */}
@@ -216,14 +274,13 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
 
         {/* Chat panel */}
         <Box flexGrow={1} flexDirection="column">
-          {/* Messages */}
           <Box flexGrow={1} flexDirection="column" paddingX={1}>
             {messages.map((msg, i) => (
               <Box key={i} flexDirection="column" marginY={0}>
                 <Text color={msg.role === "user" ? theme.accent : theme.text} bold={msg.role === "user"}>
                   {msg.role === "user" ? "You: " : "BA: "}
                 </Text>
-                {msg.text.startsWith("[Error]") ? (
+                {msg.text === "[Error]" ? (
                   <Text color="red">{msg.text}</Text>
                 ) : (
                   <Text color={theme.text}>{msg.text || (msg.role === "assistant" ? "..." : "")}</Text>
@@ -243,31 +300,85 @@ function BacliApp({ initialAgent = "ba", initialPrompt }: { initialAgent?: "ba" 
               <Text color={mode === "build" ? "green" : "yellow"} bold>{mode === "build" ? ">" : "?"} </Text>
             </Box>
             <Box flexGrow={1}>
-              {busy ? (
+              {isBusy ? (
                 <Text color={theme.muted}>⏳ Working...</Text>
-              ) : (
+              ) : agentStatus === "awaiting-input" ? (
                 <TextInput
                   value={input}
                   onChange={setInput}
                   onSubmit={handleSubmit as any}
                   placeholder={`Ask your ${agent === "ba" ? "BA" : "SysAdmin"} agent...`}
                 />
+              ) : (
+                <Text color={theme.muted}>⏳ Starting agent...</Text>
               )}
             </Box>
           </Box>
         </Box>
+
+        {/* Info panel */}
+        {showInfo && (
+          <Box width={30} borderStyle="single" borderColor={theme.border} flexDirection="column" paddingX={1}>
+            <Text bold color={theme.secondary}>Context</Text>
+            <Box marginY={0}>
+              <Text color={theme.textMuted}>Tokens: </Text>
+              <Text color={theme.text}>{tokenStats.total.toLocaleString()} / {(tokenStats.limit / 1000).toFixed(0)}K</Text>
+            </Box>
+            <Box marginY={0}>
+              <Text color={theme.textMuted}>Used: </Text>
+              <Text color={pct === "100.0" ? "red" : theme.text}>{pct}%</Text>
+            </Box>
+            <Box marginY={0}>
+              <Text color={theme.textMuted}>Messages: </Text>
+              <Text color={theme.text}>{tokenStats.msgs}</Text>
+            </Box>
+            <Box marginY={0}>
+              <Text color={theme.textMuted}>Est. cost: </Text>
+              <Text color={theme.text}>${estCost}</Text>
+            </Box>
+
+            <Box width={26} height={1} marginY={1}>
+              <Text>{renderBar(parseFloat(pct), 26)}</Text>
+            </Box>
+
+            {todoItems.length > 0 && (
+              <>
+                <Text bold color={theme.secondary}>Tasks</Text>
+                <Box flexDirection="column">
+                  {todoItems.slice(0, 10).map((item, i) => (
+                    <Box key={i} flexDirection="row">
+                      <Text color={item.done ? "green" : theme.warning}>
+                        {item.done ? "✓" : "○"} {item.text.length > 22 ? item.text.slice(0, 22) + "..." : item.text}
+                      </Text>
+                    </Box>
+                  ))}
+                  {todoItems.length > 10 && (
+                    <Text color={theme.textMuted}>  +{todoItems.length - 10} more</Text>
+                  )}
+                </Box>
+              </>
+            )}
+          </Box>
+        )}
       </Box>
 
       {/* Status bar */}
       <Box borderStyle="single" borderColor={theme.border} paddingX={1}>
         <Text color={theme.muted}>
-          [Tab: Agent] [/plan /build] [Ctrl+P: Sessions] [Ctrl+C: {busy ? "Stop" : "Exit"}]
+          [Tab: Agent] [/plan /build] [Ctrl+P: Sessions] [Ctrl+I: Info] [Ctrl+C: Stop]
         </Text>
         <Box flexGrow={1} />
         <Text color={theme.textMuted}>session: {currentSessionID.slice(0, 8)}</Text>
       </Box>
     </Box>
   );
+}
+
+function renderBar(pct: number, width: number): string {
+  const filled = Math.round((pct / 100) * width);
+  const empty = width - filled;
+  const barColor = pct > 80 ? "\x1b[31m" : pct > 50 ? "\x1b[33m" : "\x1b[32m";
+  return barColor + "█".repeat(Math.max(0, filled)) + "\x1b[90m░".repeat(Math.max(0, empty)) + "\x1b[0m";
 }
 
 export async function renderTUI(agent: "ba" | "sysadmin", initialPrompt?: string): Promise<void> {
