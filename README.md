@@ -406,6 +406,29 @@ PRs welcome! Keep it simple:
 
 ---
 
+## 🗑️ Uninstall
+
+**Mac / Linux:**
+```bash
+npm uninstall -g @bacli/cli
+rm -rf ~/.config/bacli
+```
+
+**Windows (PowerShell):**
+```powershell
+npm uninstall -g @bacli/cli
+Remove-Item -Recurse -Force "$env:USERPROFILE\.config\bacli"
+```
+
+This removes the `bacli` command, all config, sessions, and memory data. If you also want to remove local project memory:
+
+```bash
+rm -rf .bacli          # Mac/Linux
+Remove-Item -Recurse -Force .bacli   # Windows
+```
+
+---
+
 ## 📄 License
 
 MIT — see [LICENSE](LICENSE)
