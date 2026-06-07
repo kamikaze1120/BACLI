@@ -3,7 +3,7 @@ import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import type { BacliConfig } from "../config/schema.js";
 import type { GlobalBus, UserInputEvent } from "../bus/event-bus.js";
 import type { Storage } from "../storage/index.js";
-import { createMessage, createPart, finishMessage, getMessages, updateSessionTitle } from "../storage/messages.js";
+import { createMessage, createPart, finishMessage, getMessages, getSessionTotalTokens, forkSession, getSessionMessagesCount, updateSessionTitle } from "../storage/messages.js";
 import { resolveTools } from "../tools/registry.js";
 import { createToolContext, type ToolDef } from "../tools/tool.js";
 import { evaluatePermission } from "./permissions.js";
@@ -37,13 +37,16 @@ export async function runLoop(input: LoopInput): Promise<void> {
     bus.emit("log", { level: "DEBUG", message: `Loop step ${step}`, timestamp: Date.now() });
 
     const msgs = getMessages(storage, sessionID);
-    const lastAssistant = [...msgs].reverse().find((m) => m.role === "assistant");
 
-    const hasToolCalls = lastAssistant?.parts?.some(
-      (p) => p.type === "tool-call" && p.status !== "completed" && p.status !== "error"
-    );
-    if (lastAssistant?.finish_reason && lastAssistant.finish_reason !== "tool-calls" && !hasToolCalls) {
-      break;
+    // Only check break on step > 1 — step 1 always runs so new prompts get processed
+    if (step > 1) {
+      const lastAssistant = [...msgs].reverse().find((m) => m.role === "assistant");
+      const hasToolCalls = lastAssistant?.parts?.some(
+        (p) => p.type === "tool-call" && p.status !== "completed" && p.status !== "error"
+      );
+      if (lastAssistant?.finish_reason && lastAssistant.finish_reason !== "tool-calls" && !hasToolCalls) {
+        break;
+      }
     }
 
     if (step === 1) {
@@ -159,8 +162,33 @@ export async function runLoop(input: LoopInput): Promise<void> {
   }
 }
 
+const MODEL_CONTEXT_LIMIT = 131072;
+
+async function compactIfNeeded(config: BacliConfig, bus: GlobalBus, storage: Storage, sessionID: string, agent: string): Promise<string> {
+  const totalTokens = getSessionTotalTokens(storage, sessionID);
+  const pct = totalTokens / MODEL_CONTEXT_LIMIT;
+
+  if (pct < 0.80) return sessionID;
+
+  const msgCount = getSessionMessagesCount(storage, sessionID);
+
+  // Fork the session
+  const newID = forkSession(storage, sessionID);
+  const summary = `Auto-compacted at ${Math.round(pct * 100)}% token usage (${msgCount} messages, ${totalTokens.toLocaleString()} tokens). Session forked.`;
+
+  const summaryMsgID = createMessage(storage, newID, "assistant");
+  createPart(storage, summaryMsgID, "text", { text: summary });
+  finishMessage(storage, summaryMsgID, "stop", 0);
+
+  bus.emit("session", { sessionID: newID, type: "created", agent, title: `${agent} (compacted)` });
+  bus.emit("log", { level: "INFO", message: summary, timestamp: Date.now() });
+
+  return newID;
+}
+
 export async function runPersistentLoop(input: Omit<LoopInput, "initialPrompt"> & { initialPrompt?: string }): Promise<void> {
   const { config, bus, storage, sessionID, agent } = input;
+  let currentSessionID = sessionID;
   let currentMode = input.mode ?? "build";
   let currentAbort = new AbortController();
 
@@ -171,7 +199,7 @@ export async function runPersistentLoop(input: Omit<LoopInput, "initialPrompt"> 
       config,
       bus,
       storage,
-      sessionID,
+      sessionID: currentSessionID,
       initialPrompt: prompt,
       agent,
       mode: currentMode,
@@ -185,7 +213,7 @@ export async function runPersistentLoop(input: Omit<LoopInput, "initialPrompt"> 
   let inputResolver: ((prompt: string | null) => void) | null = null;
 
   const unsubInput = bus.on("user:input", (data: UserInputEvent) => {
-    if (data.sessionID !== sessionID) return;
+    if (data.sessionID !== currentSessionID) return;
     if (inputResolver) {
       inputResolver(data.prompt);
       inputResolver = null;
@@ -203,14 +231,21 @@ export async function runPersistentLoop(input: Omit<LoopInput, "initialPrompt"> 
 
   try {
     if (input.initialPrompt) {
-      bus.emit("agent:status", { status: "busy", sessionID });
-      await processPrompt(input.initialPrompt).catch((err) => {
-        bus.emit("agent:status", { status: "error", message: err.message, sessionID });
+      bus.emit("agent:status", { status: "busy", sessionID: currentSessionID });
+      const initial = input.initialPrompt;
+      const prevID = currentSessionID;
+      await processPrompt(initial).catch((err) => {
+        bus.emit("agent:status", { status: "error", message: err.message, sessionID: currentSessionID });
       });
+      const newID = await compactIfNeeded(config, bus, storage, prevID, agent);
+      if (newID !== prevID) {
+        currentSessionID = newID;
+        bus.emit("session", { sessionID: newID, type: "switched", agent });
+      }
     }
 
     while (true) {
-      bus.emit("agent:status", { status: "awaiting-input", sessionID });
+      bus.emit("agent:status", { status: "awaiting-input", sessionID: currentSessionID });
 
       const nextInput = await waitForInput();
       if (nextInput == null || nextInput === "") break;
@@ -220,10 +255,20 @@ export async function runPersistentLoop(input: Omit<LoopInput, "initialPrompt"> 
       if (cmd === "/plan") { currentMode = "plan"; continue; }
       if (cmd === "/build") { currentMode = "build"; continue; }
 
-      bus.emit("agent:status", { status: "busy", sessionID });
+      bus.emit("agent:status", { status: "busy", sessionID: currentSessionID });
+
+      const prevSessionID = currentSessionID;
       await processPrompt(nextInput).catch((err) => {
-        bus.emit("agent:status", { status: "error", message: err.message, sessionID });
+        bus.emit("agent:status", { status: "error", message: err.message, sessionID: currentSessionID });
       });
+
+      // Auto-compact after each response if > 80% context used
+      const newID = await compactIfNeeded(config, bus, storage, prevSessionID, agent);
+      if (newID !== prevSessionID) {
+        currentSessionID = newID;
+        bus.emit("agent:status", { status: "awaiting-input", sessionID: newID });
+        bus.emit("session", { sessionID: newID, type: "switched", agent });
+      }
     }
   } finally {
     unsubInput();
