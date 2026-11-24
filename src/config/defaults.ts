@@ -4,7 +4,7 @@ export const defaultConfig: BacliConfig = {
   model: "deepseek-ai/deepseek-v4-flash",
   provider: "nvidia",
   baseUrl: "https://integrate.api.nvidia.com/v1",
-  apiKey: "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",
+  apiKey: "",
   smallModel: "deepseek-ai/deepseek-v4-flash",
   maxTokens: 16384,
   temperature: 1,
