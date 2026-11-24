@@ -23,7 +23,7 @@ export const BacliConfigSchema = z.object({
   model: z.string().default("deepseek-ai/deepseek-v4-flash"),
   provider: z.string().default("nvidia"),
   baseUrl: z.string().default("https://integrate.api.nvidia.com/v1"),
-  apiKey: z.string().default("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"),
+  apiKey: z.string().default(""),
   smallModel: z.string().default("deepseek-ai/deepseek-v4-flash"),
   maxTokens: z.number().default(16384),
   temperature: z.number().default(1),

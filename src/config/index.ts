@@ -38,7 +38,8 @@ export async function loadConfig(): Promise<BacliConfig> {
 
   const merged = Object.assign({}, defaultConfig, ...results);
 
-  if (process.env.BACLI_API_KEY) merged.apiKey = process.env.BACLI_API_KEY;
+  const envKey = process.env.BACLI_API_KEY || process.env.NVIDIA_API_KEY;
+  if (envKey) merged.apiKey = envKey;
   if (process.env.BACLI_MODEL) merged.model = process.env.BACLI_MODEL;
   if (process.env.BACLI_PROVIDER) merged.provider = process.env.BACLI_PROVIDER;
   if (process.env.BACLI_BASE_URL) merged.baseUrl = process.env.BACLI_BASE_URL;
