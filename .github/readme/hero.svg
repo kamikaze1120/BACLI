@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+  <title id="title">bacli — terminal agent for Business Analysts and SysAdmins</title>
+  <desc id="desc">Animated night-sky banner with a glowing terminal window, a blinking cursor, drifting command glyphs and two agent tabs beside the bacli title.</desc>
+  <defs>
+    <linearGradient id="night" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#020317"/>
+      <stop offset=".52" stop-color="#071238"/>
+      <stop offset="1" stop-color="#13052d"/>
+    </linearGradient>
+    <radialGradient id="purpleCloud">
+      <stop stop-color="#d43cff" stop-opacity=".66"/>
+      <stop offset=".34" stop-color="#8d22ff" stop-opacity=".3"/>
+      <stop offset="1" stop-color="#4215a7" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="goldCloud">
+      <stop stop-color="#ffe69b" stop-opacity=".5"/>
+      <stop offset=".3" stop-color="#f0ad38" stop-opacity=".2"/>
+      <stop offset="1" stop-color="#b76f08" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="mintCloud">
+      <stop stop-color="#5cf2a6" stop-opacity=".32"/>
+      <stop offset="1" stop-color="#5cf2a6" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#a96b18"/>
+      <stop offset=".28" stop-color="#ffe293"/>
+      <stop offset=".55" stop-color="#f4bb4d"/>
+      <stop offset=".82" stop-color="#fff0b7"/>
+      <stop offset="1" stop-color="#b87519"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#ffffff" stop-opacity=".14"/>
+      <stop offset=".45" stop-color="#af75ff" stop-opacity=".07"/>
+      <stop offset="1" stop-color="#f6c35b" stop-opacity=".05"/>
+    </linearGradient>
+    <pattern id="stars" width="150" height="110" patternUnits="userSpaceOnUse">
+      <circle cx="13" cy="18" r="1.2" fill="#fff7d4" opacity=".9"/>
+      <circle cx="61" cy="36" r=".7" fill="#d7b5ff" opacity=".76"/>
+      <circle cx="112" cy="17" r=".9" fill="#fff" opacity=".72"/>
+      <circle cx="140" cy="68" r="1.1" fill="#ffd972" opacity=".8"/>
+      <circle cx="83" cy="91" r=".55" fill="#fff" opacity=".58"/>
+      <circle cx="31" cy="100" r=".75" fill="#c68cff" opacity=".78"/>
+    </pattern>
+    <filter id="blur" x="-70%" y="-70%" width="240%" height="240%"><feGaussianBlur stdDeviation="40"/></filter>
+    <filter id="glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="shadow" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dy="18" stdDeviation="20" flood-color="#000017" flood-opacity=".8"/></filter>
+    <clipPath id="clip"><rect width="1200" height="420" rx="30"/></clipPath>
+    <clipPath id="typeClip"><rect x="0" y="-16" width="0" height="22"><animate attributeName="width" values="0;330;330;0" keyTimes="0;.45;.9;1" dur="7s" repeatCount="indefinite"/></rect></clipPath>
+  </defs>
+
+  <g clip-path="url(#clip)">
+    <rect width="1200" height="420" fill="url(#night)"/>
+    <ellipse cx="270" cy="140" rx="330" ry="210" fill="url(#purpleCloud)" filter="url(#blur)">
+      <animate attributeName="rx" values="300;370;300" dur="14s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values=".6;1;.6" dur="9s" repeatCount="indefinite"/>
+    </ellipse>
+    <ellipse cx="980" cy="260" rx="300" ry="200" fill="url(#goldCloud)" filter="url(#blur)">
+      <animate attributeName="ry" values="170;230;170" dur="16s" repeatCount="indefinite"/>
+    </ellipse>
+    <ellipse cx="900" cy="120" rx="220" ry="140" fill="url(#mintCloud)" filter="url(#blur)">
+      <animate attributeName="opacity" values=".5;1;.5" dur="10s" repeatCount="indefinite"/>
+    </ellipse>
+    <rect x="-150" width="1500" height="520" fill="url(#stars)" opacity=".78">
+      <animateTransform attributeName="transform" type="translate" values="0 0;150 0" dur="46s" repeatCount="indefinite"/>
+    </rect>
+
+    <!-- drifting glyphs -->
+    <g font-family="'JetBrains Mono', Consolas, monospace" font-size="20" fill="#ffe293" opacity=".35">
+      <text x="760" y="70">$<animate attributeName="opacity" values=".2;.8;.2" dur="5s" repeatCount="indefinite"/></text>
+      <text x="1130" y="380">{ }<animate attributeName="opacity" values=".7;.2;.7" dur="6s" repeatCount="indefinite"/></text>
+      <text x="1150" y="60" fill="#cb55ff">&gt;_<animate attributeName="opacity" values=".2;.9;.2" dur="4s" repeatCount="indefinite"/></text>
+      <text x="740" y="392" fill="#5cf2a6">|&gt;<animate attributeName="opacity" values=".8;.2;.8" dur="7s" repeatCount="indefinite"/></text>
+    </g>
+
+    <!-- Terminal window -->
+    <g transform="translate(748 92)" filter="url(#shadow)">
+      <rect width="380" height="250" rx="16" fill="#04061d" fill-opacity=".9" stroke="url(#gold)" stroke-opacity=".85"/>
+      <rect width="380" height="34" rx="16" fill="#0c1030"/>
+      <rect y="18" width="380" height="16" fill="#0c1030"/>
+      <circle cx="20" cy="17" r="5" fill="#ff5f6d"/>
+      <circle cx="38" cy="17" r="5" fill="#f4bb4d"/>
+      <circle cx="56" cy="17" r="5" fill="#5cf2a6"/>
+      <g font-family="'JetBrains Mono', Consolas, monospace" font-size="11" letter-spacing="1">
+        <rect x="236" y="8" width="44" height="18" rx="9" fill="#f4bb4d" fill-opacity=".18" stroke="#f4bb4d" stroke-opacity=".7">
+          <animate attributeName="fill-opacity" values=".18;.05;.18" dur="6s" repeatCount="indefinite"/>
+        </rect>
+        <text x="249" y="21" fill="#ffe7a2">BA</text>
+        <rect x="288" y="8" width="80" height="18" rx="9" fill="#cb55ff" fill-opacity=".05" stroke="#cb55ff" stroke-opacity=".7">
+          <animate attributeName="fill-opacity" values=".05;.2;.05" dur="6s" repeatCount="indefinite"/>
+        </rect>
+        <text x="298" y="21" fill="#e6ccff">SYSADMIN</text>
+      </g>
+      <g font-family="'JetBrains Mono', Consolas, monospace" font-size="13">
+        <text x="20" y="66" fill="#5cf2a6">❯ <tspan fill="#fff9e8">bacli "draft a BRD for intake"</tspan></text>
+        <text x="20" y="94" fill="#9b8fc4">  document · diagram · template</text>
+        <text x="20" y="118" fill="#5cf2a6">  ✓ <tspan fill="#d9c7f2">output written (DOCX / PDF / MD)</tspan></text>
+        <text x="20" y="150" fill="#5cf2a6">❯ <tspan fill="#fff9e8">bacli sysadmin</tspan></text>
+        <text x="20" y="174" fill="#9b8fc4">  docker · k8s · terraform · ssh</text>
+        <g transform="translate(20 206)">
+          <text fill="#5cf2a6">❯ </text>
+          <g transform="translate(18 0)" clip-path="url(#typeClip)">
+            <text fill="#fff9e8">permission: bash → ask</text>
+          </g>
+          <rect x="18" y="-12" width="8" height="15" fill="#f4c65a">
+            <animate attributeName="x" values="18;210;210;18" keyTimes="0;.45;.9;1" dur="7s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/>
+          </rect>
+        </g>
+      </g>
+    </g>
+
+    <!-- Glass panel -->
+    <g filter="url(#shadow)">
+      <rect x="56" y="52" width="620" height="316" rx="28" fill="#060a25" fill-opacity=".58" stroke="url(#gold)" stroke-opacity=".82"/>
+      <rect x="68" y="64" width="596" height="292" rx="22" fill="url(#glass)" stroke="#d38cff" stroke-opacity=".26"/>
+    </g>
+    <path d="M96 102H290" stroke="url(#gold)" stroke-width="2"/>
+    <circle cx="96" cy="102" r="5" fill="#5cf2a6" filter="url(#glow)">
+      <animate attributeName="opacity" values=".3;1;.3" dur="1.6s" repeatCount="indefinite"/>
+    </circle>
+    <text x="306" y="107" fill="#f9d777" font-family="'JetBrains Mono', Consolas, monospace" font-size="13" letter-spacing="3">TERMINAL AGENT / TS</text>
+    <text x="94" y="192" fill="url(#gold)" font-family="'JetBrains Mono', Consolas, monospace" font-size="86" font-weight="800" letter-spacing="4">bacli</text>
+    <text x="98" y="232" fill="#fff9e8" font-family="'JetBrains Mono', Consolas, monospace" font-size="17" font-weight="700" letter-spacing="3">BUSINESS ANALYST + SYSADMIN</text>
+    <text x="98" y="270" fill="#d9c7f2" font-family="'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif" font-size="17">Documents, diagrams, infra configs and scripts from your terminal.</text>
+
+    <g transform="translate(98 300)">
+      <rect width="140" height="40" rx="20" fill="#0d2a22" fill-opacity=".8" stroke="#5cf2a6" stroke-opacity=".7"/>
+      <circle cx="20" cy="20" r="5" fill="#5cf2a6" filter="url(#glow)"><animate attributeName="opacity" values=".3;1;.3" dur="1.4s" repeatCount="indefinite"/></circle>
+      <text x="34" y="25" fill="#c9fbe2" font-family="'JetBrains Mono', Consolas, monospace" font-size="11.5" letter-spacing="1.2">TWO AGENTS</text>
+    </g>
+    <g transform="translate(252 300)">
+      <rect width="186" height="40" rx="20" fill="#1d1732" fill-opacity=".8" stroke="#f3c454" stroke-opacity=".65"/>
+      <text x="20" y="25" fill="#ffe7a2" font-family="'JetBrains Mono', Consolas, monospace" font-size="11.5" letter-spacing="1.2">ALLOW · ASK · DENY</text>
+    </g>
+    <g transform="translate(452 300)">
+      <rect width="150" height="40" rx="20" fill="#111331" fill-opacity=".8" stroke="#9f62ff" stroke-opacity=".66"/>
+      <text x="20" y="25" fill="#dcc9ff" font-family="'JetBrains Mono', Consolas, monospace" font-size="11.5" letter-spacing="1.2">LOCAL SQLITE</text>
+    </g>
+
+    <rect width="1200" height="420" rx="30" fill="none" stroke="url(#gold)" stroke-width="2"/>
+    <rect x="10" y="10" width="1180" height="400" rx="23" fill="none" stroke="#c44fff" stroke-opacity=".16"/>
+    <rect y="-40" width="1200" height="30" fill="#f7cf68" opacity=".045"><animate attributeName="y" values="-40;450" dur="8s" repeatCount="indefinite"/></rect>
+  </g>
+</svg>
