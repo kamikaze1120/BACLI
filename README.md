@@ -1,448 +1,302 @@
-# bacli
+<p align="center">
+  <img src="./.github/readme/hero.svg" width="100%" alt="bacli — a terminal AI agent for Business Analysts and System Administrators">
+</p>
 
-[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](package.json)
-[![TypeScript](https://img.shields.io/badge/types-TypeScript-blue)](tsconfig.json)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
-[![Maintained](https://img.shields.io/badge/maintained-yes-green)](#)
+<p align="center">
+  <img src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&amp;weight=600&amp;size=18&amp;duration=2600&amp;pause=700&amp;color=F4C65A&amp;center=true&amp;vCenter=true&amp;width=850&amp;height=42&amp;lines=Two+agents+in+one+terminal%3A+BA+and+SysAdmin.;BRDs%2C+Mermaid+diagrams%2C+DOCX%2C+PDF+and+Excel.;Dockerfiles%2C+Kubernetes%2C+Terraform+and+scripts.;Every+tool+call+is+allow%2C+ask+or+deny." alt="Typing summary of bacli">
+</p>
 
-> **CLI agent for Business Analysts & System Administrators** — documents, diagrams, infrastructure, scripts — all from your terminal.
+<p align="center">
+  <img src="https://img.shields.io/github/last-commit/kamikaze1120/BACLI?style=for-the-badge&amp;labelColor=15103A&amp;color=F4C65A" alt="Last commit">
+  <img src="https://img.shields.io/github/languages/top/kamikaze1120/BACLI?style=for-the-badge&amp;labelColor=15103A&amp;color=BD3CFF" alt="Top language">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/kamikaze1120/BACLI?style=for-the-badge&amp;labelColor=15103A&amp;color=F4C65A" alt="MIT license"></a>
+  <img src="https://img.shields.io/badge/node-%E2%89%A520-5cf2a6?style=for-the-badge&amp;labelColor=15103A" alt="Node 20 or newer">
+</p>
 
-```
-  ╔══════════════════════════════════════════════════════════╗
-  ║                                                          ║
-  ║   ██████   █████  ██████  ██      ██                     ║
-  ║  ██       ██   ██ ██   ██ ██      ██                     ║
-  ║  ██       ███████ ██████  ██      ██                     ║
-  ║  ██       ██   ██ ██   ██ ██      ██                     ║
-  ║   ██████  ██   ██ ██████  ███████ ███████                ║
-  ║                                                          ║
-  ║  ┌──────────────────────────────────────────────────┐    ║
-  ║  │  BA Agent    │  SysAdmin Agent   │  HTTP Server  │    ║
-  ║  │  Documents   │  Docker/K8s       │  SSE Streaming│    ║
-  ║  │  Diagrams    │  Terraform        │  Session API  │    ║
-  ║  │  Data Analysis│ Scripts (any lang)│  Fork/Resume │    ║
-  ║  └──────────────────────────────────────────────────┘    ║
-  ║                                                          ║
-  ║  ★ No watermarks ★ No telemetry ★ Open source (MIT) ★  ║
-  ║                                                          ║
-  ╚══════════════════════════════════════════════════════════╝
-```
+**bacli** is an AI agent that runs in your terminal. It has two modes. The **BA agent** writes requirements documents, diagrams, spreadsheets and SQL analysis. The **SysAdmin agent** writes Dockerfiles, Kubernetes manifests, Terraform and scripts, and can run commands over SSH. It uses an Ink + React TUI, works with any OpenAI-compatible model endpoint, checks a per-tool permission rule before every action, and stores sessions in a local SQLite database.
 
----
+<p align="center"><sub><code>TYPESCRIPT</code> ✦ <code>INK TUI</code> ✦ <code>AI SDK</code> ✦ <code>OPENAI-COMPATIBLE</code> ✦ <code>SQLITE</code> ✦ <code>MIT</code></sub></p>
 
-## ✨ What's this?
+<h2 align="center">✦ TWO AGENTS, ONE TOOL ✦</h2>
+<p align="center"><sub>PRESS <code>TAB</code> TO SWITCH</sub></p>
 
-**bacli** is an AI agent that lives in your terminal. Tell it what you need and it gets to work — generating polished business documents, crunching CSV data, spinning up Docker Compose files, analyzing SQL queries, or writing Terraform configs.
+<table>
+  <tr>
+    <th width="50%">🎯 BA agent <sub>(default)</sub></th>
+    <th width="50%">⚡ SysAdmin agent <sub>(<code>bacli sysadmin</code>)</sub></th>
+  </tr>
+  <tr>
+    <td valign="top">
+      📄 <b>document</b> — DOCX, PDF or Markdown output with no watermarks<br>
+      📊 <b>spreadsheet</b> — multi-sheet Excel workbooks<br>
+      🧭 <b>diagram</b> — Mermaid flowchart, sequence, ERD, class, Gantt and pie<br>
+      🧩 <b>template</b> — BRD, FRD, user story, acceptance criteria, meeting notes, RACI, SWOT and status report<br>
+      📈 <b>dataAnalysis</b> — CSV/JSON summary stats, columns and trends<br>
+      🗄️ <b>sql</b> — generate, explain, analyze or optimize queries
+    </td>
+    <td valign="top">
+      🐳 <b>docker</b> — Dockerfile and docker-compose.yml<br>
+      ☸️ <b>k8s</b> — Deployment, Service, ConfigMap and other manifests<br>
+      🌍 <b>terraform</b> — main.tf, variables.tf and outputs.tf<br>
+      📜 <b>scriptGen</b> — Bash, PowerShell, Python and Batch scripts<br>
+      🔐 <b>ssh</b> — remote commands (set to <code>ask</code> by default)<br>
+      🌐 <b>network</b> — ping, traceroute, DNS, port checks and config generation
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><sub>Both agents also get <code>bash</code> · <code>read</code> · <code>write</code> · <code>edit</code> (9 match strategies) · <code>glob</code> · <code>grep</code> · <code>webfetch</code> · <code>websearch</code></sub></td>
+  </tr>
+</table>
 
-Two agents, one tool:
+<h2 align="center">◈ HIGHLIGHTS ◈</h2>
+<p align="center"><sub>WHAT THE AGENT LOOP GIVES YOU</sub></p>
 
-| 🎯 **BA Agent** | ⚡ **SysAdmin Agent** |
-|---|---|
-| BRDs, FRDs, User Stories | Docker Compose, Dockerfiles |
-| Mermaid diagrams (flowcharts, ERDs, sequences) | Kubernetes manifests |
-| DOCX, PDF, Markdown docs | Terraform (AWS, GCP, Azure) |
-| Excel spreadsheets | Bash, PowerShell, Python, Batch scripts |
-| CSV/JSON data analysis | SSH remote execution |
-| SQL query analysis & optimization | Network diagnostics & configs |
-| Handlebars templates | Infrastructure blueprints |
+<table>
+  <tr>
+    <td width="33%" valign="top">🛡️ <b>Permission rules</b><br><sub>Each tool resolves to <code>allow</code>, <code>ask</code> or <code>deny</code>. Glob patterns let you write rules like <code>*.env → ask</code>, and you can override rules per agent.</sub></td>
+    <td width="33%" valign="top">🧠 <b>Memory files</b><br><sub>The agents are told to read and update <code>.bacli/memory.md</code> (project) and <code>~/.config/bacli/memory.md</code> (global).</sub></td>
+    <td width="33%" valign="top">♻️ <b>Auto-compaction</b><br><sub>When a session reaches about 80% of the context window, it is forked with a summary so the conversation can continue.</sub></td>
+  </tr>
+  <tr>
+    <td valign="top">🗂️ <b>Sessions</b><br><sub>Sessions are saved to SQLite at <code>~/.bacli/bacli.db</code>. Press <code>Ctrl+P</code> to browse them and fork or switch.</sub></td>
+    <td valign="top">📝 <b>Plan / build modes</b><br><sub>Type <code>/plan</code> to talk it through without tool calls, then <code>/build</code> to let the agent act.</sub></td>
+    <td valign="top">📡 <b>HTTP + SSE server</b><br><sub><code>bacli serve</code> streams agent events and serves session APIs for other front ends.</sub></td>
+  </tr>
+</table>
 
-No watermarks. No branding. Just clean, professional output.
+<h2 align="center">◆ QUICK START ◆</h2>
+<p align="center"><sub>NODE.JS 20+ AND GIT REQUIRED</sub></p>
 
----
+The installers clone the repo, build it and `npm link` the `bacli` command. As [SECURITY.md](SECURITY.md) advises, **read a script before you pipe it to a shell.**
 
-## 🚀 Quick start
-
-**Mac / Linux (bash):**
 ```bash
+# macOS / Linux
 curl -fsSL https://raw.githubusercontent.com/kamikaze1120/BACLI/main/install.sh | bash
 ```
 
-**Windows (PowerShell):**
 ```powershell
+# Windows (PowerShell)
 irm https://raw.githubusercontent.com/kamikaze1120/BACLI/main/install.ps1 | iex
 ```
 
-Then start the agent:
-
-```bash
-bacli
-```
-
-That's it. No API keys, no setup, no accounts — just install and play.
-
-```bash
-# Or jump straight in with a prompt
-bacli "Create a BRD for a customer portal with stakeholder analysis"
-bacli sysadmin "Set up Docker Compose for a Node.js + PostgreSQL app"
-```
-
-### Manual install (any platform)
+Or install by hand:
 
 ```bash
 git clone https://github.com/kamikaze1120/BACLI.git
 cd BACLI
 npm install
 npm run build
-npm link     # makes `bacli` available globally
+npm link          # puts `bacli` on your PATH
 ```
 
----
-
-## 🎮 TUI in action
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  bacli — BA Agent                                           │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  > Create a BRD for an inventory management system          │
-│                                                             │
-│  ┌─ Generating document ──────────────────────────┐         │
-│  │  ✓ Creating Business Requirements Document      │        │
-│  │  ✓ Adding stakeholders section                  │        │
-│  │  ✓ Generating functional requirements           │        │
-│  │  ✓ Saving to output/brd-inventory.docx          │        │
-│  └─────────────────────────────────────────────────┘        │
-│                                                             │
-│  Here's your BRD! It covers:                                │
-│  • Executive summary                                        │
-│  • Stakeholder analysis (6 identified)                      │
-│  • 15 functional requirements across 4 modules              │
-│  • Timeline and milestones                                  │
-│                                                             │
-│  >                                                          │
-├─────────────────────────────────────────────────────────────┤
-│  [BA] [SysAdmin]  Ctrl+P sessions  Ctrl+C cancel            │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Keyboard shortcuts
-
-| Key | What it does |
-|---|---|
-| `Tab` | Switch between BA and SysAdmin agents |
-| `Ctrl+P` | Browse and switch sessions |
-| `Ctrl+C` | Stop current generation |
-| `Ctrl+C` `Ctrl+C` | Exit bacli |
-| `Esc` | Close session picker |
-
----
-
-## ⚙️ Configuration
-
-Configuration is loaded in this order (later wins):
-
-1. **Default** (built-in — works out of the box)
-2. **Global**: `~/.config/bacli/config.json`
-3. **Project**: `.baclirc.json`
-4. **Env vars**: `BACLI_MODEL`, `BACLI_PROVIDER`, `BACLI_BASE_URL`
-5. **CLI flags**: `--model`, `--provider`
-
-You don't need to configure anything to get started. To create a project-level override:
+Point it at a model you control, then start:
 
 ```bash
-bacli init
+export BACLI_API_KEY=...            # your provider key
+export BACLI_BASE_URL=https://...   # any OpenAI-compatible endpoint
+export BACLI_MODEL=your-model-id
+
+bacli                                                   # BA agent
+bacli "Create a BRD for a customer portal"              # BA agent with a first prompt
+bacli sysadmin "Docker Compose for Node.js + Postgres"  # SysAdmin agent
 ```
 
-### Full example
+<details>
+<summary><b>📋 All commands and keys</b></summary>
 
-```json
-{
-  "$schema": "https://bacli.dev/config.json",
-  "model": "deepseek-ai/deepseek-v4-flash",
-  "provider": "nvidia",
-  "baseUrl": "https://integrate.api.nvidia.com/v1",
-  "shell": "powershell",
-  "logLevel": "INFO",
-  "agent": {
-    "ba": {
-      "permission": { "edit": "allow", "bash": "ask", "read": "allow" }
-    },
-    "sysadmin": {
-      "permission": { "edit": "allow", "bash": "allow", "ssh": "ask" }
-    }
-  },
-  "permission": {
-    "read": { "*.env": "ask", "*.env.*": "ask" }
-  },
-  "compaction": {
-    "auto": true,
-    "tailTurns": 15
-  }
-}
-```
+<br>
 
----
-
-## 🧠 Memory system
-
-bacli remembers what you tell it — across sessions.
-
-- **Project memory**: `.bacli/memory.md`
-- **Global memory**: `~/.config/bacli/memory.md`
-
-The agent reads these on launch and writes to them throughout the conversation. You can edit them manually too:
-
-```bash
-# See what it remembers
-cat ~/.config/bacli/memory.md
-
-# Add something it should definitely know
-echo "- Prefer Markdown over DOCX for drafts" >> .bacli/memory.md
-```
-
----
-
-## 📋 All commands
-
-```
+```text
 Usage: bacli [options] [prompt]
 
-CLI agent for Business Analysts and System Administrators
-
 Arguments:
-  prompt                 Initial prompt for the BA agent
+  prompt                     Initial prompt for the BA agent
 
 Options:
-  -V, --version          Output version number
-  -m, --model <model>    Model ID to use
-  -p, --provider <prov>  Provider name
-  -h, --help             Display help
+  -V, --version              Output version number
+  -m, --model <model>        Model ID to use
+  -p, --provider <provider>  Provider name
+  -h, --help                 Display help
 
 Commands:
-  sysadmin [prompt]      Start SysAdmin agent
-  init                   Create .baclirc.json
-  serve [options]        Start HTTP + SSE server
+  sysadmin [prompt]          Start the System Administrator agent (-m supported)
+  init                       Create .baclirc.json in the current directory
+  serve [--port 4096]        Start the HTTP + SSE server
 ```
 
----
-
-## 🛠️ Tool reference
-
-### Built-in tools (both agents)
-
-| Tool | What it does |
+| Key / input | Action |
 |---|---|
-| `bash` | Run shell commands (respects permissions) |
-| `read` | Read files (offset/limit support) |
-| `write` | Write files |
-| `edit` | Edit files — 9 matching strategies |
-| `glob` | Find files by glob pattern |
-| `grep` | Search file contents by regex |
-| `webfetch` | Fetch URLs and convert to markdown |
-| `websearch` | Search the web |
+| `Tab` | Switch between the BA and SysAdmin agents |
+| `Ctrl+P` | Open or close the session picker |
+| `Ctrl+C` | Exit |
+| `/plan` · `/build` | Talk only (no tools) · act with tools |
 
-### BA tools
+</details>
 
-| Tool | What it does |
+<h2 align="center">✦ CONFIGURATION ✦</h2>
+<p align="center"><sub>COSMICONFIG + ZOD, LAYERED</sub></p>
+
+Settings are merged in this order, with later layers winning: **built-in defaults → global file in your home directory** (`.baclirc.json` or `bacli.config.json`) **→ project file** (`.baclirc`, `.baclirc.json`, `bacli.config.{json,js,ts}` or a `bacli` key in `package.json`) **→ environment variables → CLI flags**. `bacli init` writes a starter `.baclirc.json`. An `apiKey` written as `"${VAR}"` is read from that environment variable.
+
+| Env var | Overrides |
 |---|---|
-| `document` | Generate DOCX, PDF, Markdown — **zero watermarks** |
-| `spreadsheet` | Create Excel workbooks with data |
-| `diagram` | Mermaid diagrams (flowchart, ERD, sequence, class, Gantt) |
-| `template` | Fill Handlebars templates (BRD, FRD, User Story) |
-| `dataAnalysis` | Analyze CSV/JSON data with stats |
-| `sql` | Analyze SQL queries, get optimization tips |
+| `BACLI_API_KEY` | `apiKey` |
+| `BACLI_BASE_URL` | `baseUrl` |
+| `BACLI_MODEL` | `model` |
+| `BACLI_PROVIDER` | `provider` |
+| `GOOGLE_API_KEY` + `GOOGLE_CX` | Optional. `websearch` uses Google Custom Search, otherwise the DuckDuckGo Instant Answer API |
 
-### SysAdmin tools
+<details>
+<summary><b>🧾 Example <code>.baclirc.json</code></b></summary>
 
-| Tool | What it does |
-|---|---|
-| `ssh` | Remote command execution over SSH |
-| `scriptGen` | Generate Bash, PowerShell, Python, Batch |
-| `docker` | Dockerfile + Docker Compose |
-| `k8s` | Kubernetes manifests (Deployment, Service, ConfigMap, etc.) |
-| `terraform` | Terraform configs for any provider |
-| `network` | Network diagnostics and config generation |
-
----
-
-## 🔒 Permission system
-
-Three levels per tool:
-
-| Rule | What happens |
-|---|---|
-| `allow` | Runs automatically |
-| `ask` | Prompts you before each run |
-| `deny` | Blocked with an error |
-
-Rules use glob patterns and per-agent overrides:
+<br>
 
 ```json
 {
-  "permission": {
-    "read": { "*.env": "ask", "*.key": "deny" },
-    "bash": "ask"
-  },
+  "model": "your-model-id",
+  "provider": "your-provider",
+  "baseUrl": "https://your-openai-compatible-endpoint/v1",
+  "apiKey": "${MY_PROVIDER_API_KEY}",
+  "shell": "bash",
+  "logLevel": "INFO",
   "agent": {
-    "ba": { "permission": { "bash": "ask" } },
-    "sysadmin": { "permission": { "bash": "allow", "ssh": "ask" } }
-  }
+    "ba":       { "permission": { "edit": "allow", "bash": "ask",   "read": "allow" } },
+    "sysadmin": { "permission": { "edit": "allow", "bash": "allow", "ssh":  "ask"   } }
+  },
+  "permission": {
+    "read": { "*.env": "ask", "*.env.*": "ask", "*.key": "deny" }
+  },
+  "toolOutput": { "maxLines": 200, "maxBytes": 8192 },
+  "compaction": { "auto": true, "tailTurns": 15 }
 }
 ```
 
----
+Default permissions: the BA agent can edit files but must `ask` before running `bash`. The SysAdmin agent can run `bash` but must `ask` before using `ssh`. Reading any `*.env` file always prompts.
 
-## 🏗️ Architecture
+</details>
 
+<h2 align="center">◈ ARCHITECTURE ◈</h2>
+<p align="center"><sub>ONE AGENT LOOP, THREE FRONT DOORS</sub></p>
+
+```mermaid
+flowchart TB
+  CLI["Commander CLI<br/>bacli · sysadmin · init · serve"]
+  TUI["Ink + React TUI"]
+  SRV["HTTP + SSE server"]
+  CFG["Config<br/>cosmiconfig + Zod"]
+  LOOP["Agent loop<br/>BA · SysAdmin · plan/build"]
+  PERM{"Permission<br/>allow · ask · deny"}
+  TOOLS["Tool registry<br/>8 built-ins · 6 BA · 6 SysAdmin"]
+  LLM["OpenAI-compatible provider<br/>(Vercel AI SDK)"]
+  BUS(["Event bus"])
+  DB[("SQLite<br/>~/.bacli/bacli.db")]
+
+  CLI --> TUI & SRV
+  CFG --> LOOP
+  TUI --> LOOP
+  LOOP <--> LLM
+  LOOP --> PERM --> TOOLS
+  LOOP --> DB
+  LOOP --> BUS --> TUI & SRV
+
+  classDef gold fill:#071331,stroke:#B17A23,color:#ffe293
+  classDef purple fill:#13052d,stroke:#BD3CFF,color:#fff0b7
+  classDef mint fill:#04061d,stroke:#5cf2a6,color:#c9fbe2
+  class CLI,TUI,SRV,CFG gold
+  class LOOP,TOOLS,BUS purple
+  class PERM,LLM,DB mint
 ```
-┌───────────────────────────────────────────────────────┐
-│                       bacli CLI                       │
-│  ┌──────────┐  ┌──────────┐  ┌─────────┐  ┌───────┐   │
-│  │ TUI      │  │ HTTP     │  │ CLI     │  │Config │   │
-│  │Ink+React)│  │ Server   │  │Commander│  │Zod    │   │
-│  └────┬─────┘  └────┬─────┘  └────┬────┘  └───┬───┘   │
-│       └─────────────┴─────────────┴───────────┘       │
-│                         │                             │
-│  ┌──────────────────────┴────────────────────────┐    │
-│  │               Agent Loop                      │    │
-│  │  ┌──────────┐  ┌──────────┐  ┌────────────┐   │    │
-│  │  │ Provider │  │ Tools    │  │ Permission │   │    │
-│  │  │ (AI SDK) │  │ (20+)    │  │ System     │   │    │
-│  │  └──────────┘  └──────────┘  └────────────┘   │    │
-│  └───────────────────────────────────────────────┘    │
-│                         │                             │
-│  ┌──────────────────────┴────────────────────────┐    │
-│  │            Storage (SQLite)                   │    │
-│  │  sessions │ messages │ parts │ compaction     │    │
-│  └───────────────────────────────────────────────┘    │
-└───────────────────────────────────────────────────────┘
-```
 
-### Stack
+<details>
+<summary><b>📡 Server endpoints</b> (<code>bacli serve</code>, default port 4096)</summary>
 
-| Layer | Technology |
+<br>
+
+| Method | Path | Returns |
+|---|---|---|
+| `GET` | `/events` (alias `/global/event`) | SSE stream: `log`, `text:delta`, `tool:status`, `permission:request`, `session` |
+| `GET` | `/sessions` | Session list |
+| `GET` | `/sessions/:id` | Messages for a session |
+| `GET` | `/health` | `{ status, timestamp }` |
+| `POST` | `/permission/response` | Answers a pending `ask` permission |
+
+The server sends permissive CORS headers and has **no authentication**. Keep it on localhost unless you add your own access controls (see [SECURITY.md](SECURITY.md)).
+
+</details>
+
+<h2 align="center">◆ TECH STACK ◆</h2>
+
+<p align="center">
+  <img src="https://skillicons.dev/icons?i=ts,nodejs,react,sqlite,vitest&amp;theme=dark" alt="TypeScript, Node.js, React, SQLite, Vitest">
+</p>
+
+<p align="center"><sub>Vercel AI SDK v6 · Ink 5 · Commander · cosmiconfig · Zod v4 · better-sqlite3 · docx · pdf-lib · ExcelJS · Handlebars · ssh2 · Vitest</sub></p>
+
+<h2 align="center">✦ DEVELOPMENT ✦</h2>
+
+| Script | Does |
 |---|---|
-| Runtime | Node.js 20+, TypeScript 5.x |
-| AI SDK | Vercel AI SDK v6 |
-| TUI | Ink + React 18 |
-| Validation | Zod v4 |
-| Storage | SQLite (better-sqlite3) |
-| Config | cosmiconfig |
-| Documents | docx, pdf-lib (MIT) — **no watermarks** |
-| Diagrams | Mermaid |
-| Spreadsheets | ExcelJS |
+| `npm run dev` | Run from source with `tsx` |
+| `npm run build` | Compile TypeScript into `dist/` |
+| `npm start` | Run the compiled CLI |
+| `npm test` | Vitest: 65 test cases across 5 suites (agent, config, edit, permissions, tools) |
+| `npm run test:watch` | Vitest in watch mode |
+| `npm run binary` | Package a standalone binary with `pkg` |
 
----
+<details>
+<summary><b>🗂️ Project structure</b></summary>
 
-## 🧪 Development
+<br>
 
-```bash
-git clone https://github.com/kamikaze1120/BACLI.git
-cd BACLI
-npm install
-npm run build
-npm link     # makes `bacli` available globally
-```
-
-### Scripts
-
-| Command | What it does |
-|---|---|
-| `npm run build` | Compile TypeScript → `dist/` |
-| `npm start` | Run compiled version |
-| `npm run dev` | Run with tsx (hot reload) |
-| `npm test` | 64+ tests across 5 suites |
-| `npm run test:watch` | Tests in watch mode |
-| `npm run binary` | Package as standalone binary (pkg) |
-
-### Project structure
-
-```
-bacli/
+```text
+BACLI/
 ├── src/
-│   ├── index.ts               # Entry point
-│   ├── agent/
-│   │   ├── loop.ts             # Core agent loop
-│   │   ├── permissions.ts      # Permission evaluator
-│   │   ├── compaction.ts       # Context pruning
-│   │   ├── agent.ts            # Base agent
-│   │   ├── ba-agent.ts         # BA agent
-│   │   └── sysadmin-agent.ts   # SysAdmin agent
-│   ├── config/
-│   │   ├── schema.ts           # Zod v4 schema
-│   │   ├── defaults.ts         # Default config
-│   │   └── index.ts            # Config loader
+│   ├── index.ts            # Commander entry point
+│   ├── agent/              # loop, permissions, compaction, ba-agent, sysadmin-agent
+│   ├── config/             # Zod schema, defaults, cosmiconfig loader
 │   ├── tools/
-│   │   ├── tool.ts             # Tool types
-│   │   ├── registry.ts         # Lazy-load registry
-│   │   ├── builtins/           # read, write, edit, bash, glob, grep, webfetch, websearch
-│   │   ├── ba/                  # document, spreadsheet, diagram, template, dataAnalysis, sql
-│   │   └── sysadmin/            # ssh, scriptGen, docker, k8s, terraform, network
-│   ├── bus/event-bus.ts        # Global event bus
-│   ├── storage/
-│   │   ├── index.ts            # SQLite init
-│   │   └── messages.ts         # Session CRUD
+│   │   ├── builtins/       # bash, read, write, edit, glob, grep, webfetch, websearch
+│   │   ├── ba/             # document, spreadsheet, diagram, template, data-analysis, sql
+│   │   └── sysadmin/       # ssh, script-gen, docker, k8s, terraform, network
+│   ├── bus/event-bus.ts    # global event bus
+│   ├── storage/            # SQLite init + session/message CRUD
 │   └── cli/
-│       ├── tui/App.tsx          # Ink + React TUI
-│       └── server/Server.ts    # HTTP/SSE server
-├── tests/                       # 64+ tests
-├── install.sh                   # curl | bash installer
-├── LICENSE                      # MIT
+│       ├── tui/            # Ink + React app and theme
+│       └── server/         # HTTP + SSE server
+├── tests/                  # Vitest suites
+├── install.sh · install.ps1
+├── SECURITY.md · AGENTS.md · LICENSE
 └── package.json
 ```
 
----
+</details>
 
-## 🤝 Contributing
+<details>
+<summary><b>🗑️ Uninstall</b></summary>
 
-PRs welcome! Keep it simple:
+<br>
 
-1. Fork the repo
-2. Create a feature branch
-3. Write tests
-4. Run `npm test` — all green
-5. Open a PR
-
----
-
-## 🔒 Privacy
-
-- **Zero telemetry.** No analytics, no tracking, no phone-home
-- **Zero watermarks.** Every document is clean
-- **Your data stays local.** Sessions stored in SQLite on your machine
-- **Direct to provider.** AI requests go straight to your configured provider, not through any bacli proxy
-
----
-
-## 🗑️ Uninstall
-
-**Mac / Linux:**
 ```bash
-npm uninstall -g @bacli/cli
-rm -rf ~/.bacli ~/.config/bacli
+npm unlink -g @bacli/cli          # remove the linked `bacli` command
+rm -rf ~/.bacli                   # installed source (install.sh) + sessions database
+rm -rf ~/.config/bacli            # global memory file
+rm -rf .bacli                     # per-project memory, inside a project
 ```
 
-**Windows (PowerShell):**
-```powershell
-npm uninstall -g @bacli/cli
-Remove-Item -Recurse -Force "$env:LOCALAPPDATA\bacli", "$env:USERPROFILE\.config\bacli"
-```
+On Windows, `install.ps1` clones to `%LOCALAPPDATA%\bacli`. Sessions are stored in `%USERPROFILE%\.bacli`.
 
-What this removes:
-| Path | Contents |
-|---|---|
-| `~/.bacli/src` (or `%LOCALAPPDATA%\bacli`) | Installed source code |
-| `~/.config/bacli` | Config, sessions (SQLite), memory, auth |
-| `npm global symlink` | The `bacli` command |
+</details>
 
-To also clean up local project data:
-```bash
-rm -rf .bacli                                   # Mac/Linux
-Remove-Item -Recurse -Force ".bacli"             # Windows PowerShell
-```
+<h2 align="center">◈ SAFE OPERATION ◈</h2>
+<p align="center"><sub>POWERFUL TOOLS, YOUR RULES</sub></p>
 
----
+bacli can run shell commands, edit files and reach remote hosts with whatever credentials its process has. Start with `ask` or `deny` for `bash`, `write`, `ssh` and infrastructure changes. Work inside a version-controlled workspace. Review any generated Terraform, manifests and scripts before you apply them. Keep keys out of prompts and committed config. Full checklist: **[SECURITY.md](SECURITY.md)**.
 
-## 📄 License
+<h2 align="center">◆ LICENSE ◆</h2>
 
-MIT — see [LICENSE](LICENSE)
-
----
+<p align="center">MIT — see <a href="LICENSE">LICENSE</a>. Contributions welcome: branch, add tests, run <code>npm test</code>, open a PR.</p>
 
 <p align="center">
-  Built with 🔥 for BAs and SysAdmins who work in the terminal.
-  <br>
-  <a href="https://github.com/kamikaze1120/BACLI">GitHub</a>
+  <sub><code>◉ DOCS AND INFRA FROM THE PROMPT // GILDED ORBIT</code></sub><br>
+  <sub>Built by <a href="https://github.com/kamikaze1120">@kamikaze1120</a></sub>
 </p>
